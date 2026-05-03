@@ -138,7 +138,7 @@ trend-bulucu/
 
 ## 📄 Lisans
 
-MIT — istediğin gibi kullan, değiştir, dağıt.
+[MIT](LICENSE) — Copyright © 2026 Ferhat. İstediğin gibi kullan, değiştir, dağıt.
 
 ---
 
