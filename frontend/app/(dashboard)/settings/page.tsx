@@ -415,7 +415,7 @@ function SystemTab({ settings, onSave }: { settings: AppSettings; onSave: () => 
     setMsg(null);
     try {
       await api.updateSettings(form);
-      setMsg("✓ Sistem ayarları kaydedildi.");
+      setMsg("✓ Sistem ayarları kaydedildi. AI cevapları yeni dilde gelecek.");
       onSave();
     } catch (e: any) {
       setMsg(`Hata: ${e.message}`);
@@ -426,18 +426,50 @@ function SystemTab({ settings, onSave }: { settings: AppSettings; onSave: () => 
 
   return (
     <div className="card card-pad max-w-2xl space-y-4">
-      <p className="text-sm text-ink-500">Pytrends sorgu coğrafyası ve dil ayarları.</p>
-      <Field label="Coğrafya (ISO ülke kodu)" value={form.geo_target} onChange={(v) => setForm({ ...form, geo_target: v })} placeholder="TR" />
-      <Field label="Dil" value={form.language} onChange={(v) => setForm({ ...form, language: v })} placeholder="tr-TR" />
-      <p className="text-xs text-ink-500">
-        Zamanlama (saat/dakika), ücret tarifeleri, retry sayısı gibi gelişmiş ayarlar için <strong>API Anahtarları</strong> sekmesini kullanın.
-      </p>
+      <p className="text-sm text-ink-500">Pytrends coğrafya + AI çıktı dili.</p>
+
+      <div>
+        <label className="label block mb-1">AI Çıktı Dili</label>
+        <select
+          className="input"
+          value={form.language}
+          onChange={(e) => setForm({ ...form, language: e.target.value })}
+        >
+          <option value="tr-TR">🇹🇷 Türkçe (tr-TR)</option>
+          <option value="en-US">🇺🇸 English (en-US)</option>
+        </select>
+        <p className="text-xs text-ink-500 mt-1">
+          AI sohbet, yazı üretimi, kelime önerileri bu dilde olur. UI ve veri Türkçe kalır.
+        </p>
+      </div>
+
+      <div>
+        <label className="label block mb-1">Coğrafya (Pytrends geo)</label>
+        <select
+          className="input"
+          value={form.geo_target}
+          onChange={(e) => setForm({ ...form, geo_target: e.target.value })}
+        >
+          <option value="TR">🇹🇷 Türkiye (TR)</option>
+          <option value="US">🇺🇸 ABD (US)</option>
+          <option value="GB">🇬🇧 İngiltere (GB)</option>
+          <option value="DE">🇩🇪 Almanya (DE)</option>
+          <option value="FR">🇫🇷 Fransa (FR)</option>
+          <option value="">🌍 Dünya (boş = global)</option>
+        </select>
+      </div>
+
       <div className="flex items-center gap-3">
         <button className="btn-primary" onClick={save} disabled={saving}>
           {saving ? "Kaydediliyor…" : "Kaydet"}
         </button>
         {msg && <span className={`text-sm ${msg.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{msg}</span>}
       </div>
+
+      <p className="text-xs text-ink-500 pt-2 border-t border-ink-100">
+        Dil değişikliği <strong>hemen aktif</strong> — AI bir sonraki istekte yeni dilde cevap verir.
+        Coğrafya değişimi sonraki Pytrends fetch'inde geçerli olur.
+      </p>
     </div>
   );
 }

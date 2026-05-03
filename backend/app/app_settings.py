@@ -104,7 +104,7 @@ def mark_configured(db: Session) -> None:
 # AI prompt'ları için yardımcılar
 
 def brand_context(db: Session) -> dict[str, str]:
-    """AI prompt'larında kullanılan marka bağlamı."""
+    """AI prompt'larında kullanılan marka bağlamı (dil dahil)."""
     name = get(db, "brand_name") or GENERIC_BRAND_FALLBACK["brand_name"]
     desc = get(db, "brand_description") or GENERIC_BRAND_FALLBACK["brand_description"]
     audience = get(db, "target_audience") or GENERIC_BRAND_FALLBACK["target_audience"]
@@ -113,6 +113,7 @@ def brand_context(db: Session) -> dict[str, str]:
         "brand_description": desc,
         "target_audience": audience,
         "brand_url": get(db, "brand_url"),
+        "language": get(db, "language") or "tr-TR",
     }
 
 

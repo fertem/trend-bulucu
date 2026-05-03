@@ -43,6 +43,22 @@ def _brand_vars(brand: dict | None) -> tuple[str, str, str, str]:
     return name, desc, audience, url
 
 
+def _lang(brand: dict | None) -> str:
+    """AI çıktı dili. Settings'teki language (tr-TR / en-US) → 'tr' veya 'en'."""
+    b = brand or {}
+    lang = (b.get("language") or "tr-TR").lower()
+    if lang.startswith("en"):
+        return "en"
+    return "tr"
+
+
+def _lang_instruction(brand: dict | None) -> str:
+    """AI prompt'ları için dil yönergesi."""
+    if _lang(brand) == "en":
+        return "Respond in clear, professional English."
+    return "Cevap Türkçe olsun, dilbilgisi temiz."
+
+
 def _resolve_provider() -> str:
     if settings.anthropic_api_key and (settings.ai_provider == "anthropic" or not settings.openai_api_key):
         return "anthropic"
@@ -691,6 +707,89 @@ def article_full_text(keyword: str, outline: dict, brand: dict | None = None,
     return generate(prompt, max_tokens=4000, json_mode=False, brand=brand)
 
 
+def _build_chat_system(messages: list[dict], context: dict, brand: dict | None) -> tuple[str, list[dict]]:
+    """Chat için system prompt + temizlenmiş messages — stream + non-stream paylaşır."""
+    name, desc, audience, _ = _brand_vars(brand)
+
+    ctx_lines = []
+    if context.get("top_trending"):
+        ctx_lines.append("EN ÇOK ARANANLAR (son 7g):")
+        for t in context["top_trending"][:8]:
+            ctx_lines.append(f"  - {t['keyword']} (büyüme %{t.get('growth_pct', 0):.0f}, son 7g {t.get('avg_last_7', 0):.0f})")
+
+    if context.get("hot_alerts"):
+        ctx_lines.append("\nHOT UYARILAR (>%50 büyüme):")
+        for h in context["hot_alerts"][:5]:
+            ctx_lines.append(f"  - {h['keyword']} (%{h.get('growth_pct', 0):.0f})")
+
+    if context.get("gsc_top"):
+        ctx_lines.append("\nSEARCH CONSOLE — EN ÇOK TIKLANAN:")
+        for g in context["gsc_top"][:5]:
+            ctx_lines.append(f"  - \"{g['query']}\" pos:{g['position']:.1f}, {g['clicks']} klik, %{g['ctr']*100:.1f} CTR")
+
+    if context.get("gsc_opportunities"):
+        ctx_lines.append("\nBAŞLIK İYİLEŞTİRME FIRSATLARI:")
+        for o in context["gsc_opportunities"][:5]:
+            ctx_lines.append(f"  - \"{o['query']}\" {o['impressions']} gösterim ama %{o['ctr']*100:.1f} CTR")
+
+    if context.get("content_gaps"):
+        ctx_lines.append("\nİÇERİK BOŞLUKLARI:")
+        for g in context["content_gaps"][:5]:
+            ctx_lines.append(f"  - {g['keyword']}")
+
+    if context.get("seasonality_now"):
+        ctx_lines.append(f"\nBU AY ({context['seasonality_now'].get('month_name','?')}) ZIRVEDE:")
+        for s in context["seasonality_now"].get("by_lift", [])[:5]:
+            ctx_lines.append(f"  - {s['keyword']} (lift %{s.get('lift_pct', 0):+.0f})")
+
+    context_str = "\n".join(ctx_lines) if ctx_lines else "(veri henüz toplanmamış)"
+    lang_instr = _lang_instruction(brand)
+
+    system_prompt = (
+        f"Sen {name} ({desc}) için trend ve SEO uzmanısın. Hedef kitle: {audience}.\n\n"
+        f"Aşağıda kullanıcının panelindeki güncel veri var — sorulara bu veriye dayalı somut cevap ver.\n\n"
+        f"--- VERİ ---\n{context_str}\n--- ---\n\n"
+        f"{lang_instr} Kısa (2-4 paragraf), maddeli liste ve markdown kullan. "
+        f"Veride olmayan bir şeye 'bu verim yok' de — uydurma. "
+        f"Aksiyon önerirken 'sayfa şu, yazı şu, kanal şu' formatında somut ol."
+    )
+
+    cleaned = [{"role": m["role"], "content": m["content"]} for m in messages if m.get("role") in ("user", "assistant")]
+    return system_prompt, cleaned
+
+
+def chat_with_data_stream(messages: list[dict], context: dict, brand: dict | None = None):
+    """Streaming chat — token token yield eder (SSE için)."""
+    system_prompt, cleaned = _build_chat_system(messages, context, brand)
+    provider = _resolve_provider()
+
+    if provider == "anthropic":
+        from anthropic import Anthropic
+        client = Anthropic(api_key=settings.anthropic_api_key)
+        with client.messages.stream(
+            model="claude-sonnet-4-5",
+            max_tokens=1500,
+            system=system_prompt,
+            messages=cleaned,
+        ) as stream:
+            for text in stream.text_stream:
+                yield text
+    else:
+        from openai import OpenAI
+        client = OpenAI(api_key=settings.openai_api_key)
+        all_msgs = [{"role": "system", "content": system_prompt}, *cleaned]
+        stream = client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=1500,
+            messages=all_msgs,
+            stream=True,
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content if chunk.choices else None
+            if delta:
+                yield delta
+
+
 def chat_with_data(messages: list[dict], context: dict, brand: dict | None = None) -> str:
     """Veri-aware AI sohbet. Context: trends top, gsc top, gaps, brand info, son özet vs."""
     name, desc, audience, _ = _brand_vars(brand)
@@ -945,6 +1044,374 @@ def cluster_keywords_ai(keywords: list[str], brand: dict | None = None) -> dict:
                 "size": len(kws),
             })
     return {"clusters": valid_clusters}
+
+
+# ─── AI Article Editor (chat-like) ─────────────────────────────────────────
+
+def edit_article(current_markdown: str, instruction: str, brand: dict | None = None) -> dict:
+    """Mevcut markdown yazıya AI ile düzenleme uygula.
+
+    Örnek instruction: "Giriş paragrafını kısalt ve daha samimi yap"
+    """
+    lang_instr = _lang_instruction(brand)
+    name, desc, audience, _ = _brand_vars(brand)
+
+    prompt = (
+        f"Aşağıda mevcut blog yazısının markdown'u var. Kullanıcı bir düzenleme istiyor.\n\n"
+        f"MEVCUT YAZI:\n```markdown\n{current_markdown}\n```\n\n"
+        f"DÜZENLEME İSTEĞİ: {instruction}\n\n"
+        f"Marka bağlamı: {name} ({desc}), hedef: {audience}.\n\n"
+        f"Tüm yazıyı bu isteğe göre yeniden ver. Sadece markdown çıktısı, başka açıklama yok. "
+        f"Hedef kelime kullanımını koru, başlık yapısını koru ama istek doğrultusunda iyileştir. "
+        f"{lang_instr}"
+    )
+    new_markdown = generate(prompt, max_tokens=4000, json_mode=False, brand=brand)
+    # Code fence varsa temizle
+    new_markdown = re.sub(r"^```(?:markdown)?\s*", "", new_markdown.strip())
+    new_markdown = re.sub(r"\s*```$", "", new_markdown.strip())
+
+    # Değişim özetini de iste (ayrı çağrı kısa olur)
+    summary_prompt = (
+        f"Önceki ve yeni yazı arasındaki değişiklikleri 2-3 madde halinde özetle "
+        f"(örn. 'Giriş paragrafı 3 cümleden 1 cümleye indirildi'). "
+        f"Sadece 2-3 satırlık liste, başlık yok. {lang_instr}\n\n"
+        f"İSTEK: {instruction}"
+    )
+    try:
+        summary = generate(summary_prompt, max_tokens=300, brand=brand)
+    except Exception:
+        summary = ""
+
+    return {
+        "markdown": new_markdown,
+        "summary": summary.strip(),
+        "length": len(new_markdown),
+        "word_count": len(new_markdown.split()),
+    }
+
+
+# ─── SEO Scorecard ─────────────────────────────────────────────────────────
+
+def seo_scorecard(keyword: str, markdown: str, outline: dict | None = None,
+                  brand: dict | None = None) -> dict:
+    """Yazıyı 0-100 puanla SEO açısından değerlendir."""
+    # Programatik kontroller (AI'ye gerek yok bunlar için)
+    word_count = len(markdown.split())
+    keyword_lower = keyword.lower()
+    md_lower = markdown.lower()
+
+    # Hedef kelime kullanımı
+    keyword_count = md_lower.count(keyword_lower)
+    keyword_density = (keyword_count / word_count * 100) if word_count else 0
+
+    # H2 / H3 say
+    h2_count = len(re.findall(r"^## ", markdown, re.MULTILINE))
+    h3_count = len(re.findall(r"^### ", markdown, re.MULTILINE))
+
+    # İlk paragrafta kelime var mı?
+    first_para = markdown.split("\n\n")[0] if markdown else ""
+    keyword_in_first = keyword_lower in first_para.lower()
+
+    # Başlıklarda kelime kaç kez geçiyor?
+    headings = re.findall(r"^#{1,3}\s+(.+)$", markdown, re.MULTILINE)
+    keyword_in_headings = sum(1 for h in headings if keyword_lower in h.lower())
+
+    # Liste / bold kullanımı (engagement signal)
+    has_lists = bool(re.search(r"^[\-\*]\s", markdown, re.MULTILINE)) or bool(re.search(r"^\d+\.\s", markdown, re.MULTILINE))
+    has_bold = "**" in markdown
+    has_questions = "?" in markdown  # FAQ veya soru başlıkları
+
+    # Skor hesaplama (her kategori 0-100, ağırlıklı toplam)
+    scores = {}
+
+    # Length score (1500-2500 ideal)
+    if word_count < 500:
+        scores["length"] = 30
+    elif word_count < 1000:
+        scores["length"] = 60
+    elif word_count <= 2500:
+        scores["length"] = 100
+    elif word_count <= 4000:
+        scores["length"] = 80
+    else:
+        scores["length"] = 60
+
+    # Keyword usage (1-3% ideal density, ilk paragrafta olmalı)
+    if 0.5 <= keyword_density <= 3.0:
+        scores["keyword_density"] = 100
+    elif keyword_density < 0.5:
+        scores["keyword_density"] = 40
+    elif keyword_density <= 5:
+        scores["keyword_density"] = 70
+    else:
+        scores["keyword_density"] = 30  # over-optimization
+
+    scores["keyword_in_first_para"] = 100 if keyword_in_first else 30
+
+    # Headings (en az 3 H2)
+    if h2_count >= 5:
+        scores["headings"] = 100
+    elif h2_count >= 3:
+        scores["headings"] = 80
+    elif h2_count >= 1:
+        scores["headings"] = 50
+    else:
+        scores["headings"] = 0
+
+    # Keyword in headings (en az 2 H2'de geçmeli)
+    if keyword_in_headings >= 3:
+        scores["keyword_in_headings"] = 100
+    elif keyword_in_headings >= 2:
+        scores["keyword_in_headings"] = 80
+    elif keyword_in_headings >= 1:
+        scores["keyword_in_headings"] = 50
+    else:
+        scores["keyword_in_headings"] = 0
+
+    # Engagement signals
+    eng_score = 0
+    if has_lists: eng_score += 35
+    if has_bold: eng_score += 30
+    if has_questions: eng_score += 35
+    scores["engagement"] = eng_score
+
+    # Total weighted score
+    total = round(
+        scores["length"] * 0.20 +
+        scores["keyword_density"] * 0.20 +
+        scores["keyword_in_first_para"] * 0.10 +
+        scores["headings"] * 0.15 +
+        scores["keyword_in_headings"] * 0.20 +
+        scores["engagement"] * 0.15
+    )
+
+    verdict = "mükemmel" if total >= 90 else "iyi" if total >= 75 else "orta" if total >= 60 else "geliştirilmeli"
+
+    # AI ile somut iyileştirme önerileri
+    issues = []
+    if scores["length"] < 80: issues.append(f"kelime sayısı {word_count} (1500-2500 ideal)")
+    if scores["keyword_density"] < 70: issues.append(f"kelime yoğunluğu %{keyword_density:.1f}")
+    if not keyword_in_first: issues.append("hedef kelime ilk paragrafta yok")
+    if scores["keyword_in_headings"] < 80: issues.append(f"hedef kelime {keyword_in_headings} H2'de geçiyor")
+    if scores["headings"] < 80: issues.append(f"sadece {h2_count} H2 var")
+    if scores["engagement"] < 70: issues.append("liste / bold / soru yetersiz")
+
+    suggestions = []
+    if issues:
+        try:
+            lang_instr = _lang_instruction(brand)
+            sug_prompt = (
+                f"Bir blog yazısının SEO açısından şu sorunları var:\n"
+                + "\n".join(f"- {i}" for i in issues) + "\n\n"
+                f"Hedef kelime: \"{keyword}\". Her sorun için 1 satır somut çözüm öner. "
+                f"JSON: {{\"suggestions\": [\"öneri 1\", \"öneri 2\", ...]}}. {lang_instr}"
+            )
+            sug_text = generate(sug_prompt, max_tokens=500, json_mode=True, brand=brand)
+            sug_data = _extract_json(sug_text)
+            if sug_data and "suggestions" in sug_data:
+                suggestions = sug_data["suggestions"]
+        except Exception:
+            pass
+
+    return {
+        "total_score": total,
+        "verdict": verdict,
+        "breakdown": scores,
+        "metrics": {
+            "word_count": word_count,
+            "keyword_density_pct": round(keyword_density, 2),
+            "keyword_count": keyword_count,
+            "h2_count": h2_count,
+            "h3_count": h3_count,
+            "keyword_in_first_para": keyword_in_first,
+            "keyword_in_headings": keyword_in_headings,
+            "has_lists": has_lists,
+            "has_bold": has_bold,
+            "has_questions": has_questions,
+        },
+        "issues": issues,
+        "suggestions": suggestions,
+    }
+
+
+# ─── Internal Linking Suggester ────────────────────────────────────────────
+
+def suggest_internal_links(keyword: str, markdown: str, site_pages: list[dict],
+                           brand: dict | None = None) -> dict:
+    """Yazıdaki bölümlerden, sitedeki ilgili sayfalara link öner.
+
+    site_pages: [{"slug": "...", "title": "...", "url": "...", "description": "..."}]
+    """
+    if not site_pages:
+        return {"suggestions": []}
+
+    pages_str = "\n".join(
+        f"- {p.get('slug')} | title: {p.get('title','')[:80]} | url: {p.get('url','')}"
+        for p in site_pages[:50]
+    )
+
+    # Markdown içinden H2 bölümlerini çıkar (her bölüm için ayrı link önerisi)
+    h2_pattern = re.compile(r"^##\s+(.+?)$(.+?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL)
+    sections = h2_pattern.findall(markdown[:10000])  # ilk 10K karakter
+    sections_str = "\n".join(f"## {h}\n{c[:300]}..." for h, c in sections[:8])
+
+    lang_instr = _lang_instruction(brand)
+
+    prompt = (
+        f"Hedef kelime: \"{keyword}\"\n\n"
+        f"YAZIDAKİ BÖLÜMLER (ilk 8):\n{sections_str}\n\n"
+        f"SİTEDE MEVCUT SAYFALAR:\n{pages_str}\n\n"
+        f"Bu yazının her bölümü için, sitedeki en alakalı 1-2 sayfaya **internal link önerisi** yap. "
+        f"Sadece anlamlı bağlantılar öner — zorlama. Her öneride:\n"
+        f"- Hangi cümlede / bölümde link kelimesi olarak ne kullanılacak (anchor text)\n"
+        f"- Hangi sayfaya link verilecek (slug)\n"
+        f"- Neden alakalı (1 cümle)\n\n"
+        f"JSON cevap:\n"
+        f"{{\n"
+        f'  "suggestions": [\n'
+        f'    {{\n'
+        f'      "section_h2": "ilgili H2 başlığı",\n'
+        f'      "anchor_text": "linkleştirilecek metin",\n'
+        f'      "target_slug": "hedef sayfa slug",\n'
+        f'      "target_url": "tam URL",\n'
+        f'      "reason": "neden alakalı"\n'
+        f'    }}\n'
+        f"  ]\n"
+        f"}}\n\n"
+        f"5-10 öneri yeter. Tekrar etme. {lang_instr}"
+    )
+    text = generate(prompt, max_tokens=1500, json_mode=True, brand=brand)
+    data = _extract_json(text)
+    if not data or "suggestions" not in data:
+        return {"suggestions": []}
+    return data
+
+
+# ─── Search Intent Classifier ───────────────────────────────────────────────
+
+def classify_search_intent(keywords: list[str], brand: dict | None = None) -> dict:
+    """Her kelimeyi 4 intent kategorisinden birine ata."""
+    if not keywords:
+        return {"items": []}
+    kws_str = "\n".join(f"- {k}" for k in keywords[:60])
+    lang_instr = _lang_instruction(brand)
+
+    prompt = (
+        f"Aşağıdaki anahtar kelimeleri arama niyetine (search intent) göre sınıflandır.\n\n"
+        f"INTENT KATEGORİLERİ:\n"
+        f"- informational: bilgi arıyor (nedir, nasıl, ne zaman)\n"
+        f"- commercial: araştırma + karşılaştırma (en iyi, vs, alternatif)\n"
+        f"- transactional: satın alma niyeti (fiyat, sipariş, indirim)\n"
+        f"- navigational: belirli bir marka/site arıyor\n\n"
+        f"KELIMELER:\n{kws_str}\n\n"
+        f"JSON cevap:\n"
+        f"{{\n"
+        f'  "items": [\n'
+        f'    {{"keyword": "...", "intent": "informational|commercial|transactional|navigational", "confidence": 0.0-1.0, "reasoning": "kısa neden"}}\n'
+        f"  ]\n"
+        f"}}\n\n"
+        f"{lang_instr}"
+    )
+    text = generate(prompt, max_tokens=2500, json_mode=True, brand=brand)
+    data = _extract_json(text)
+    if not data or "items" not in data:
+        return {"items": []}
+    return data
+
+
+# ─── Keyword Difficulty (KD) ───────────────────────────────────────────────
+
+def estimate_keyword_difficulty(keyword: str, sc_data: dict | None = None,
+                                volume_monthly: int | None = None,
+                                category: str | None = None,
+                                brand: dict | None = None) -> dict:
+    """Bir kelimenin SEO'da ranking zorluğunu tahmin et (0-100)."""
+    sc_str = "yok"
+    if sc_data:
+        sc_str = (
+            f"şu an pos {sc_data.get('position', 0):.1f}, "
+            f"{sc_data.get('impressions', 0)} gösterim, %{sc_data.get('ctr', 0)*100:.1f} CTR"
+        )
+
+    vol_str = f"{volume_monthly}" if volume_monthly else "bilinmiyor"
+    lang_instr = _lang_instruction(brand)
+
+    prompt = (
+        f"Anahtar kelime: \"{keyword}\"\n"
+        f"Kategori: {category or 'belirsiz'}\n"
+        f"Aylık tahmini hacim: {vol_str}\n"
+        f"Mevcut SEO durumu: {sc_str}\n\n"
+        f"Bu kelimenin Google'da rank etme zorluğunu (Keyword Difficulty) tahmin et.\n"
+        f"0-100 skala: 0=çok kolay, 50=orta, 100=çok zor (büyük marka kapmış).\n\n"
+        f"Düşünmen gereken:\n"
+        f"- Bu kelimede genelde kim rank ediyor (büyük markalar, e-ticaret, niş bloglar)?\n"
+        f"- Search intent ne (commercial keywords genelde zor, informational orta)\n"
+        f"- Hacim büyükse rekabet çok\n"
+        f"- Eğer mevcut pozisyon iyi (top 10) ise başarmak görece kolay olabilir\n\n"
+        f"JSON cevap:\n"
+        f"{{\n"
+        f'  "kd_score": 0-100,\n'
+        f'  "verdict": "kolay|orta|zor|çok zor",\n'
+        f'  "competition_type": "büyük markalar | niş bloglar | e-ticaret | karışık | bilinmiyor",\n'
+        f'  "winning_strategy": "Bu kelimede başarmak için ne yapmalı (1-2 cümle, somut)",\n'
+        f'  "estimated_time_to_rank": "Tahmini süre (örn. 2-3 ay, 6+ ay, çok zor)"\n'
+        f"}}\n\n"
+        f"{lang_instr}"
+    )
+    text = generate(prompt, max_tokens=600, json_mode=True, brand=brand)
+    data = _extract_json(text)
+    if not data:
+        return {"kd_score": 50, "verdict": "orta", "competition_type": "bilinmiyor", "winning_strategy": "", "estimated_time_to_rank": ""}
+    return data
+
+
+# ─── People Also Ask ───────────────────────────────────────────────────────
+
+def people_also_ask(keyword: str, count: int = 20, brand: dict | None = None) -> dict:
+    """AnswerThePublic tarzı — Google'ın 'şunu da soruyor' tarzında soru kelimeleri üret."""
+    name, desc, audience, _ = _brand_vars(brand)
+    lang_instr = _lang_instruction(brand)
+
+    prompt = (
+        f"Anahtar kelime: \"{keyword}\"\n"
+        f"Bağlam: {name} ({desc}) için, hedef kitle: {audience}.\n\n"
+        f"Bu kelime için Google'da insanların sorabileceği {count} farklı soru üret. "
+        f"Soru tipleri çeşitli olsun (nedir, nasıl, ne zaman, neden, kim, hangi, kaç, "
+        f"karşılaştırma, en iyi, listeleme).\n\n"
+        f"JSON cevap:\n"
+        f"{{\n"
+        f'  "questions": [\n'
+        f'    {{\n'
+        f'      "question": "tam soru (Google\'da aratılır gibi)",\n'
+        f'      "type": "nedir | nasıl | ne zaman | neden | kim | hangi | kaç | karşılaştırma | liste | diğer",\n'
+        f'      "search_intent": "informational | commercial | transactional",\n'
+        f'      "content_angle": "Bu sorudan üretilebilecek içerik fikri (1 cümle)"\n'
+        f'    }}\n'
+        f"  ],\n"
+        f'  "topic_clusters": ["bu sorulardan çıkan ana temalar (3-5 madde)"]\n'
+        f"}}\n\n"
+        f"Türkçe sorular gerçek hayatta aratılan formatta olsun. {lang_instr}"
+    )
+    text = generate(prompt, max_tokens=2500, json_mode=True, brand=brand)
+    data = _extract_json(text)
+    if not data or "questions" not in data:
+        return {"questions": [], "topic_clusters": []}
+    # Validate ve filtrele
+    out = []
+    for q in data["questions"]:
+        question = (q.get("question") or "").strip()
+        if not question or len(question) < 5:
+            continue
+        out.append({
+            "question": question,
+            "type": q.get("type", "diğer"),
+            "search_intent": q.get("search_intent", "informational"),
+            "content_angle": q.get("content_angle", ""),
+        })
+    return {
+        "questions": out[:count],
+        "topic_clusters": data.get("topic_clusters", []),
+    }
 
 
 def article_social_pack(keyword: str, outline: dict, brand: dict | None = None) -> dict:

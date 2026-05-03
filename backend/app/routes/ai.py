@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -66,6 +67,36 @@ class RefreshPostIn(BaseModel):
     slug: str
     title: str
     keyword: str
+
+
+class IntentBatchIn(BaseModel):
+    keywords: list[str]
+
+
+class KDIn(BaseModel):
+    keyword: str
+    category: str | None = None
+
+
+class PAAIn(BaseModel):
+    keyword: str
+    count: int = 20
+
+
+class EditArticleIn(BaseModel):
+    markdown: str
+    instruction: str
+
+
+class ScorecardIn(BaseModel):
+    keyword: str
+    markdown: str
+    outline: dict | None = None
+
+
+class InternalLinksIn(BaseModel):
+    keyword: str
+    markdown: str
 
 
 def _score_dict(s):
@@ -251,6 +282,109 @@ def long_tail(body: KeywordIn, db: Annotated[Session, Depends(get_db)]):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI çağrısı başarısız: {e}")
     return result
+
+
+# ─── Search Intent + KD + PAA ──────────────────────────────────────────────
+
+@router.post("/search-intent")
+def search_intent(body: IntentBatchIn, db: Annotated[Session, Depends(get_db)]):
+    """Birden çok kelimeyi search intent kategorilerine sınıflandır."""
+    _ensure_ai()
+    brand = app_settings.brand_context(db)
+    if not body.keywords:
+        return {"items": []}
+    try:
+        return ai_module.classify_search_intent(body.keywords[:60], brand=brand)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI çağrısı başarısız: {e}")
+
+
+@router.post("/keyword-difficulty")
+def keyword_difficulty(body: KDIn, db: Annotated[Session, Depends(get_db)]):
+    """Bir kelimenin SEO ranking zorluğunu tahmin et."""
+    _ensure_ai()
+    kw = body.keyword.lower().strip()
+    brand = app_settings.brand_context(db)
+
+    # GSC verisi varsa al
+    sc_data = None
+    if sc_module.has_data(db):
+        sc_data = sc_module.keyword_for_query(db, kw)
+
+    # Volume varsa al
+    from ..models import KeywordVolume
+    vol_row = db.query(KeywordVolume).filter(KeywordVolume.keyword == kw).one_or_none()
+    volume = vol_row.avg_monthly_searches if vol_row else None
+
+    try:
+        return ai_module.estimate_keyword_difficulty(
+            kw, sc_data=sc_data, volume_monthly=volume,
+            category=body.category, brand=brand,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI çağrısı başarısız: {e}")
+
+
+@router.post("/paa")
+def paa(body: PAAIn, db: Annotated[Session, Depends(get_db)]):
+    """People Also Ask — bir kelimeden 20 soru üret."""
+    _ensure_ai()
+    brand = app_settings.brand_context(db)
+    try:
+        return ai_module.people_also_ask(body.keyword, count=body.count, brand=brand)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI çağrısı başarısız: {e}")
+
+
+# ─── AI Article Editor + Scorecard + Internal Links ────────────────────────
+
+@router.post("/article/edit")
+def article_edit(body: EditArticleIn, db: Annotated[Session, Depends(get_db)]):
+    """Mevcut yazıyı AI ile düzenle (chat-like editing)."""
+    _ensure_ai()
+    if not body.markdown or not body.instruction:
+        raise HTTPException(status_code=400, detail="markdown ve instruction zorunlu")
+    brand = app_settings.brand_context(db)
+    try:
+        return ai_module.edit_article(body.markdown, body.instruction, brand=brand)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI çağrısı başarısız: {e}")
+
+
+@router.post("/article/scorecard")
+def article_scorecard(body: ScorecardIn, db: Annotated[Session, Depends(get_db)]):
+    """Yazının SEO açısından puanı (0-100) + iyileştirme önerileri."""
+    _ensure_ai()
+    brand = app_settings.brand_context(db)
+    try:
+        return ai_module.seo_scorecard(body.keyword, body.markdown, body.outline, brand=brand)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Scorecard başarısız: {e}")
+
+
+@router.post("/article/internal-links")
+def article_internal_links(body: InternalLinksIn, db: Annotated[Session, Depends(get_db)]):
+    """Yazıya sitedeki sayfalardan internal link önerisi."""
+    _ensure_ai()
+    brand = app_settings.brand_context(db)
+
+    from ..models import SiteContent
+    pages = [
+        {
+            "slug": p.slug,
+            "title": p.title,
+            "url": p.url,
+            "description": p.description,
+        }
+        for p in db.query(SiteContent).all()
+    ]
+    if not pages:
+        return {"suggestions": [], "message": "Önce siteyi tara (İçerik Boşluğu kartı)"}
+
+    try:
+        return ai_module.suggest_internal_links(body.keyword, body.markdown, pages, brand=brand)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI çağrısı başarısız: {e}")
 
 
 # ─── Setup wizard endpoints ────────────────────────────────────────────────
@@ -497,6 +631,61 @@ def chat(body: ChatIn, db: Annotated[Session, Depends(get_db)]):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI sohbet başarısız: {e}")
     return {"role": "assistant", "content": text}
+
+
+@router.post("/chat/stream")
+def chat_stream(body: ChatIn, db: Annotated[Session, Depends(get_db)]):
+    """Streaming AI chat — token token akar (SSE)."""
+    _ensure_ai()
+    if not body.messages:
+        raise HTTPException(status_code=400, detail="messages boş olamaz")
+
+    brand = app_settings.brand_context(db)
+
+    # Context derle
+    context = {}
+    try:
+        context["top_trending"] = [_score_dict(s) for s in analytics.top_trending(db, limit=10)]
+        context["hot_alerts"] = [_score_dict(s) for s in analytics.hot_alerts(db)]
+    except Exception:
+        pass
+    if sc_module.has_data(db):
+        try:
+            context["gsc_top"] = sc_module.top_queries(db, limit=8)
+            context["gsc_opportunities"] = sc_module.opportunities(db, limit=5)
+        except Exception:
+            pass
+    try:
+        from .. import site_coverage
+        context["content_gaps"] = site_coverage.content_gaps(db, limit=8)
+    except Exception:
+        pass
+    try:
+        outlook = seasonality_module.current_month_outlook(db)
+        context["seasonality_now"] = {
+            "month_name": outlook.get("target_month_name"),
+            "by_lift": outlook.get("by_lift", []),
+        }
+    except Exception:
+        pass
+
+    def event_stream():
+        try:
+            for chunk in ai_module.chat_with_data_stream(body.messages, context, brand=brand):
+                # SSE format: "data: <json>\n\n"
+                import json as _json
+                payload = _json.dumps({"delta": chunk})
+                yield f"data: {payload}\n\n"
+            yield "data: {\"done\": true}\n\n"
+        except Exception as e:
+            import json as _json
+            yield f"data: {_json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ─── DALL-E Cover Image ─────────────────────────────────────────────────────

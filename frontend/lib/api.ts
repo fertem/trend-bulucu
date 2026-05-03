@@ -122,6 +122,40 @@ export const api = {
       body: JSON.stringify({ messages }),
     }),
 
+  // Search Intent + KD + PAA
+  aiSearchIntent: (keywords: string[]) =>
+    request<{ items: { keyword: string; intent: string; confidence: number; reasoning: string }[] }>(
+      "/api/ai/search-intent",
+      { method: "POST", body: JSON.stringify({ keywords }) }
+    ),
+  aiKeywordDifficulty: (keyword: string, category?: string) =>
+    request<KDResult>("/api/ai/keyword-difficulty", {
+      method: "POST",
+      body: JSON.stringify({ keyword, category }),
+    }),
+  aiPAA: (keyword: string, count = 20) =>
+    request<{ questions: PAAQuestion[]; topic_clusters: string[] }>("/api/ai/paa", {
+      method: "POST",
+      body: JSON.stringify({ keyword, count }),
+    }),
+
+  // Article: Edit + Scorecard + Internal Links
+  articleEdit: (markdown: string, instruction: string) =>
+    request<{ markdown: string; summary: string; length: number; word_count: number }>(
+      "/api/ai/article/edit",
+      { method: "POST", body: JSON.stringify({ markdown, instruction }) }
+    ),
+  articleScorecard: (keyword: string, markdown: string, outline?: any) =>
+    request<SEOScorecard>("/api/ai/article/scorecard", {
+      method: "POST",
+      body: JSON.stringify({ keyword, markdown, outline }),
+    }),
+  articleInternalLinks: (keyword: string, markdown: string) =>
+    request<{ suggestions: InternalLinkSuggestion[]; message?: string }>(
+      "/api/ai/article/internal-links",
+      { method: "POST", body: JSON.stringify({ keyword, markdown }) }
+    ),
+
   // DALL-E cover image
   aiCoverImage: (keyword: string, prompt_hint = "", style = "modern, minimalist, vibrant") =>
     request<{ url: string; keyword: string }>("/api/ai/cover-image", {
@@ -508,6 +542,49 @@ export type DiscoveryItem = {
   suggested_action: "write" | "track" | "skip";
   action_label: string;
   priority: number;
+};
+
+export type KDResult = {
+  kd_score: number;
+  verdict: string;
+  competition_type: string;
+  winning_strategy: string;
+  estimated_time_to_rank: string;
+};
+
+export type PAAQuestion = {
+  question: string;
+  type: string;
+  search_intent: string;
+  content_angle: string;
+};
+
+export type SEOScorecard = {
+  total_score: number;
+  verdict: string;
+  breakdown: Record<string, number>;
+  metrics: {
+    word_count: number;
+    keyword_density_pct: number;
+    keyword_count: number;
+    h2_count: number;
+    h3_count: number;
+    keyword_in_first_para: boolean;
+    keyword_in_headings: number;
+    has_lists: boolean;
+    has_bold: boolean;
+    has_questions: boolean;
+  };
+  issues: string[];
+  suggestions: string[];
+};
+
+export type InternalLinkSuggestion = {
+  section_h2: string;
+  anchor_text: string;
+  target_slug: string;
+  target_url: string;
+  reason: string;
 };
 
 export type SocialPack = {

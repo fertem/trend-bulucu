@@ -10,6 +10,7 @@ import { GrowthBadge } from "@/components/GrowthBadge";
 import { SeasonalityPanel } from "@/components/SeasonalityPanel";
 import { UntrackedKeywordPrompt } from "@/components/UntrackedKeywordPrompt";
 import { AIDeepAnalysis } from "@/components/AIDeepAnalysis";
+import { KeywordIntelligence } from "@/components/KeywordIntelligence";
 import { SimilarKeywords } from "@/components/SimilarKeywords";
 import { formatVolume, competitionLabel } from "@/lib/format";
 
@@ -229,6 +230,13 @@ export default function ExplorerPage() {
               )}
             </div>
           </div>
+
+          {hasAi && (
+            <KeywordIntelligence
+              keyword={detail.keyword}
+              category={detail.score?.category}
+            />
+          )}
 
           <SimilarKeywords keyword={detail.keyword} hasAi={hasAi} correlated={detail.correlated} />
 

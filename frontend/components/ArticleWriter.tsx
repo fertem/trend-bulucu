@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { api, ArticleOutline, SocialPack } from "@/lib/api";
+import { api, ArticleOutline, SocialPack, SEOScorecard, InternalLinkSuggestion } from "@/lib/api";
 
-type Phase = "outline" | "writing" | "social" | "image" | "schema" | "publish" | "done";
+type Phase = "outline" | "writing" | "social" | "image" | "schema" | "publish" | "edit" | "score" | "links" | "done";
 
 export function ArticleWriter({ keyword, category, onClose }: {
   keyword: string;
@@ -16,7 +16,11 @@ export function ArticleWriter({ keyword, category, onClose }: {
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [schemaData, setSchemaData] = useState<{ article: any; faq: any | null; howto: any | null } | null>(null);
   const [publishResult, setPublishResult] = useState<{ link: string; edit_link: string; platform: string } | null>(null);
-  const [tab, setTab] = useState<"outline" | "article" | "social" | "image" | "schema" | "publish">("outline");
+  const [scorecard, setScorecard] = useState<SEOScorecard | null>(null);
+  const [internalLinks, setInternalLinks] = useState<{ suggestions: InternalLinkSuggestion[]; message?: string } | null>(null);
+  const [editInstruction, setEditInstruction] = useState("");
+  const [editHistory, setEditHistory] = useState<{ instruction: string; summary: string }[]>([]);
+  const [tab, setTab] = useState<"outline" | "article" | "edit" | "score" | "links" | "social" | "image" | "schema" | "publish">("outline");
   const [busy, setBusy] = useState<Phase | null>("outline");
   const [error, setError] = useState<string | null>(null);
 
@@ -95,6 +99,54 @@ export function ArticleWriter({ keyword, category, onClose }: {
     }
   };
 
+  const editArticle = async () => {
+    if (!markdown || !editInstruction.trim()) return;
+    setBusy("edit");
+    setError(null);
+    try {
+      const r = await api.articleEdit(markdown, editInstruction.trim());
+      setMarkdown(r.markdown);
+      setEditHistory([...editHistory, { instruction: editInstruction.trim(), summary: r.summary }]);
+      setEditInstruction("");
+      // Skor varsa tazele
+      setScorecard(null);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const computeScorecard = async () => {
+    if (!markdown || !outline) return;
+    setBusy("score");
+    setError(null);
+    setTab("score");
+    try {
+      const r = await api.articleScorecard(keyword, markdown, outline);
+      setScorecard(r);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const findInternalLinks = async () => {
+    if (!markdown) return;
+    setBusy("links");
+    setError(null);
+    setTab("links");
+    try {
+      const r = await api.articleInternalLinks(keyword, markdown);
+      setInternalLinks(r);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const publish = async (platform: "wordpress" | "ghost", status: "draft" | "publish") => {
     if (!outline || !markdown) {
       setError("Önce 'Tam Yazı' üret");
@@ -147,6 +199,9 @@ export function ArticleWriter({ keyword, category, onClose }: {
           {([
             ["outline", "Brief"],
             ["article", "Tam Yazı"],
+            ["edit", "✏️ AI Düzenle"],
+            ["score", "📊 SEO Skor"],
+            ["links", "🔗 Internal"],
             ["social", "Sosyal Medya"],
             ["image", "Kapak"],
             ["schema", "Schema.org"],
@@ -307,6 +362,215 @@ export function ArticleWriter({ keyword, category, onClose }: {
             </div>
           )}
 
+          {/* EDIT */}
+          {tab === "edit" && (
+            <div className="space-y-3">
+              {!markdown ? (
+                <div className="card card-pad bg-amber-50/40 border-amber-100 text-sm">
+                  Önce <strong>"Tam Yazı"</strong> sekmesinden yazıyı üret.
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-ink-500">
+                    Yazıyı AI ile düzenle — istediğin şeyi söyle, AI o kısmı yeniden yazar.
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      className="input flex-1"
+                      placeholder="örn: Giriş paragrafını kısalt ve daha samimi yap"
+                      value={editInstruction}
+                      onChange={(e) => setEditInstruction(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") editArticle(); }}
+                      disabled={busy !== null}
+                    />
+                    <button className="btn-primary text-sm" onClick={editArticle} disabled={busy !== null || !editInstruction.trim()}>
+                      {busy === "edit" ? "Düzenleniyor…" : "Uygula"}
+                    </button>
+                  </div>
+
+                  <div className="text-xs text-ink-500">Hızlı şablonlar:</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "Tonu daha samimi yap",
+                      "Daha kısa ve net olsun",
+                      "Akademik / profesyonel tona çevir",
+                      "Daha çok örnek ekle",
+                      "FAQ bölümünü genişlet",
+                      "Çağrı (CTA) güçlendir",
+                      "İstatistik ve veri ekle",
+                      "Listelere böl, paragrafları azalt",
+                    ].map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setEditInstruction(s)}
+                        className="text-xs px-2 py-0.5 rounded border border-ink-200 hover:bg-ink-50"
+                        disabled={busy !== null}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+
+                  {editHistory.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-ink-100">
+                      <div className="label mb-2">Düzenleme Geçmişi</div>
+                      <div className="space-y-2">
+                        {editHistory.map((h, i) => (
+                          <div key={i} className="text-xs border-l-2 border-brand-200 pl-3 py-1">
+                            <div className="text-ink-700"><strong>→</strong> {h.instruction}</div>
+                            {h.summary && <div className="text-ink-500 mt-0.5 whitespace-pre-wrap">{h.summary}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="pt-3 border-t border-ink-100">
+                    <div className="label mb-1">Güncel Markdown ({markdown.split(/\s+/).length} kelime)</div>
+                    <pre className="text-[10px] font-mono bg-ink-50/70 p-3 rounded border border-ink-200 max-h-[300px] overflow-y-auto">
+                      {markdown.slice(0, 1500)}{markdown.length > 1500 && "\n\n…"}
+                    </pre>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* SCORE */}
+          {tab === "score" && (
+            <div className="space-y-3">
+              {!markdown ? (
+                <div className="card card-pad bg-amber-50/40 border-amber-100 text-sm">
+                  Önce yazıyı üret, sonra SEO skoru bakabilirsin.
+                </div>
+              ) : !scorecard && !busy ? (
+                <button className="btn-primary text-sm" onClick={computeScorecard}>
+                  📊 SEO Skoru Hesapla
+                </button>
+              ) : busy === "score" ? (
+                <div className="text-ink-500 text-sm">SEO analizi yapılıyor…</div>
+              ) : scorecard && (
+                <div className="space-y-4">
+                  <div className="card card-pad bg-gradient-to-br from-brand-50/40 to-white border-brand-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs text-ink-500">Toplam SEO Skoru</div>
+                        <div className="text-4xl font-semibold text-ink-900 tabular-nums">
+                          {scorecard.total_score}<span className="text-base text-ink-500">/100</span>
+                        </div>
+                        <div className={`text-sm mt-1 ${
+                          scorecard.verdict === "mükemmel" ? "text-emerald-700" :
+                          scorecard.verdict === "iyi" ? "text-emerald-600" :
+                          scorecard.verdict === "orta" ? "text-amber-700" : "text-red-600"
+                        }`}>
+                          {scorecard.verdict.toUpperCase()}
+                        </div>
+                      </div>
+                      <button className="btn-ghost text-xs" onClick={computeScorecard}>Yeniden Hesapla</button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="label mb-2">Kategori Skorları</div>
+                    <div className="space-y-1.5">
+                      {Object.entries(scorecard.breakdown).map(([k, v]) => (
+                        <div key={k} className="flex items-center gap-2">
+                          <div className="text-xs text-ink-700 w-40 capitalize">{k.replace(/_/g, " ")}</div>
+                          <div className="flex-1 h-2 bg-ink-100 rounded overflow-hidden">
+                            <div
+                              className={`h-full ${v >= 80 ? "bg-emerald-500" : v >= 60 ? "bg-amber-500" : "bg-red-500"}`}
+                              style={{ width: `${v}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-ink-700 tabular-nums w-10 text-right">{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="label mb-2">Metrikler</div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                      <Metric label="Kelime sayısı" value={scorecard.metrics.word_count.toString()} />
+                      <Metric label="Hedef kelime" value={`${scorecard.metrics.keyword_count}× (%${scorecard.metrics.keyword_density_pct})`} />
+                      <Metric label="H2 / H3" value={`${scorecard.metrics.h2_count} / ${scorecard.metrics.h3_count}`} />
+                      <Metric label="İlk paragrafta" value={scorecard.metrics.keyword_in_first_para ? "✓ Var" : "✗ Yok"} />
+                      <Metric label="Başlıklarda" value={`${scorecard.metrics.keyword_in_headings} kez`} />
+                      <Metric label="Liste/Bold/Soru" value={`${scorecard.metrics.has_lists ? "L" : "-"}${scorecard.metrics.has_bold ? "B" : "-"}${scorecard.metrics.has_questions ? "?" : "-"}`} />
+                    </div>
+                  </div>
+
+                  {scorecard.issues.length > 0 && (
+                    <div className="card card-pad bg-amber-50/30 border-amber-100">
+                      <div className="label mb-2">Sorunlar</div>
+                      <ul className="space-y-1 text-sm text-ink-700">
+                        {scorecard.issues.map((i, idx) => <li key={idx}>⚠️ {i}</li>)}
+                      </ul>
+                      {scorecard.suggestions.length > 0 && (
+                        <>
+                          <div className="label mt-3 mb-2">AI Önerileri</div>
+                          <ul className="space-y-1 text-sm text-emerald-800">
+                            {scorecard.suggestions.map((s, idx) => <li key={idx}>💡 {s}</li>)}
+                          </ul>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* INTERNAL LINKS */}
+          {tab === "links" && (
+            <div className="space-y-3">
+              {!markdown ? (
+                <div className="card card-pad bg-amber-50/40 border-amber-100 text-sm">
+                  Önce yazıyı üret.
+                </div>
+              ) : !internalLinks && !busy ? (
+                <>
+                  <p className="text-sm text-ink-500">
+                    Yazıyı sitendeki ilgili sayfalara bağlamak SEO için kritik. AI sitendeki sayfaları okur, alakalı link önerir.
+                  </p>
+                  <button className="btn-primary text-sm" onClick={findInternalLinks}>
+                    🔗 Internal Link Önerileri Bul
+                  </button>
+                </>
+              ) : busy === "links" ? (
+                <div className="text-ink-500 text-sm">AI link önerileri hazırlıyor…</div>
+              ) : internalLinks?.message ? (
+                <div className="card card-pad bg-amber-50/30 text-sm">
+                  {internalLinks.message}
+                </div>
+              ) : internalLinks && internalLinks.suggestions.length > 0 ? (
+                <div>
+                  <div className="text-xs text-ink-500 mb-2">{internalLinks.suggestions.length} öneri:</div>
+                  <div className="space-y-2">
+                    {internalLinks.suggestions.map((s, i) => (
+                      <div key={i} className="card card-pad">
+                        <div className="text-xs text-ink-500 mb-1">Bölüm: <strong>{s.section_h2}</strong></div>
+                        <div className="text-sm">
+                          Anchor: <code className="bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded">{s.anchor_text}</code>
+                        </div>
+                        <div className="text-xs text-ink-500 mt-1">→ <a href={s.target_url} target="_blank" rel="noreferrer" className="text-brand-700 hover:underline">{s.target_slug}</a></div>
+                        {s.reason && <div className="text-xs text-ink-500 italic mt-1">"{s.reason}"</div>}
+                        <button
+                          className="text-xs text-ink-500 hover:text-brand-700 mt-2"
+                          onClick={() => copy(`[${s.anchor_text}](${s.target_url})`)}
+                        >
+                          📋 Markdown link kopyala
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-ink-500">Öneri çıkmadı.</div>
+              )}
+            </div>
+          )}
+
           {/* COVER IMAGE */}
           {tab === "image" && (
             <div className="space-y-3">
@@ -413,6 +677,15 @@ export function ArticleWriter({ keyword, category, onClose }: {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs text-ink-500">{label}</div>
+      <div className="text-sm font-medium text-ink-900 tabular-nums">{value}</div>
     </div>
   );
 }
