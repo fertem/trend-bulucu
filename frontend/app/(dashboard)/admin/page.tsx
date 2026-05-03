@@ -6,8 +6,10 @@ import { api, RunItem } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { KeywordSuggester } from "@/components/KeywordSuggester";
 import { LongTailDiscovery } from "@/components/LongTailDiscovery";
+import { useT } from "@/lib/i18n";
 
 export default function AdminPage() {
+  const t = useT();
   const [hasAi, setHasAi] = useState(false);
   useEffect(() => {
     api.publicConfig().then((c) => setHasAi(c.has_ai)).catch(() => {});
@@ -86,8 +88,8 @@ export default function AdminPage() {
   return (
     <div>
       <PageHeader
-        title="Yönetim"
-        subtitle="Manuel veri toplama, akıllı kelime önerileri ve sistem durumu."
+        title={t.admin.title}
+        subtitle={t.admin.subtitle}
       />
 
       <KeywordSuggester hasAi={hasAi} />

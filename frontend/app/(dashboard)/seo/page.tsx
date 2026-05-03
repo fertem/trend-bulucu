@@ -4,17 +4,19 @@ import { useState } from "react";
 import useSWR from "swr";
 import { api, TopicCluster, AuthorityScore, CannibalItem } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
+import { useT } from "@/lib/i18n";
 
 type Tab = "clusters" | "authority" | "cannibal";
 
 export default function SEOPage() {
+  const t = useT();
   const [tab, setTab] = useState<Tab>("clusters");
 
   return (
     <div>
       <PageHeader
-        title="🎯 SEO Derinliği"
-        subtitle="Topic Cluster + Authority + Cannibalization analizleri"
+        title={t.seo.title}
+        subtitle={t.seo.subtitle}
       />
 
       <div className="flex gap-1 mb-6 border-b border-ink-200 pb-2">

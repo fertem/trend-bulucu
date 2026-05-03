@@ -5,22 +5,24 @@ import Link from "next/link";
 import { api, TrendScore } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { GrowthBadge } from "@/components/GrowthBadge";
+import { useT } from "@/lib/i18n";
 
 export default function OpportunitiesPage() {
+  const t = useT();
   const { data, isLoading, error } = useSWR<TrendScore[]>("/api/trends/opportunities?limit=30", api.fetcher);
 
   return (
     <div>
       <PageHeader
-        title="Fırsatlar"
-        subtitle="Yüksek büyüme + henüz doygun olmayan kelimeler. İçerik üretmek için iyi adaylar."
+        title={t.opportunities.title}
+        subtitle={t.opportunities.subtitle}
       />
 
-      {isLoading && <div className="text-sm text-ink-500">Yükleniyor…</div>}
-      {error && <div className="text-sm text-red-600">Hata: {String((error as any).message || error)}</div>}
+      {isLoading && <div className="text-sm text-ink-500">{t.common.loading}</div>}
+      {error && <div className="text-sm text-red-600">{t.common.error}: {String((error as any).message || error)}</div>}
 
       {data && data.length === 0 && (
-        <div className="text-sm text-ink-500">Henüz fırsat skoru hesaplanmadı.</div>
+        <div className="text-sm text-ink-500">{t.opportunities.noScore}</div>
       )}
 
       {data && data.length > 0 && (
@@ -40,15 +42,15 @@ export default function OpportunitiesPage() {
               </div>
               <div className="grid grid-cols-3 text-xs text-ink-500 mt-3">
                 <div>
-                  <div className="label">Fırsat</div>
+                  <div className="label">{t.opportunities.opportunity}</div>
                   <div className="text-base text-ink-900 tabular-nums mt-0.5">{s.opportunity_score.toFixed(0)}</div>
                 </div>
                 <div>
-                  <div className="label">Son 7g</div>
+                  <div className="label">{t.opportunities.last7d}</div>
                   <div className="text-base text-ink-900 tabular-nums mt-0.5">{s.avg_last_7.toFixed(1)}</div>
                 </div>
                 <div>
-                  <div className="label">Önceki 7g</div>
+                  <div className="label">{t.opportunities.prev7d}</div>
                   <div className="text-base text-ink-900 tabular-nums mt-0.5">{s.avg_prev_7.toFixed(1)}</div>
                 </div>
               </div>

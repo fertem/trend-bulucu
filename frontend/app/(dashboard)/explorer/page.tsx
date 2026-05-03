@@ -13,8 +13,10 @@ import { AIDeepAnalysis } from "@/components/AIDeepAnalysis";
 import { KeywordIntelligence } from "@/components/KeywordIntelligence";
 import { SimilarKeywords } from "@/components/SimilarKeywords";
 import { formatVolume, competitionLabel } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export default function ExplorerPage() {
+  const t = useT();
   const params = useSearchParams();
   const router = useRouter();
   const initialQ = params.get("q") || "";
@@ -70,7 +72,7 @@ export default function ExplorerPage() {
 
   return (
     <div>
-      <PageHeader title="Keşif" subtitle="Bir anahtar kelimenin trend grafiğini ve ilişkili aramaları gör." />
+      <PageHeader title={t.explorer.title} subtitle={t.explorer.subtitle} />
 
       <form
         onSubmit={(e) => { e.preventDefault(); if (query.trim()) submit(query.trim()); }}
@@ -78,12 +80,12 @@ export default function ExplorerPage() {
       >
         <input
           className="input"
-          placeholder="örn. çocuklar için kodlama"
+          placeholder={t.explorer.placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           list="keyword-suggestions"
         />
-        <button className="btn-primary" type="submit">Göster</button>
+        <button className="btn-primary" type="submit">{t.common.show}</button>
       </form>
 
       <datalist id="keyword-suggestions">
@@ -108,13 +110,13 @@ export default function ExplorerPage() {
         </div>
       )}
 
-      {!active && <div className="text-sm text-ink-500">Bir kelime seçin veya yazın.</div>}
-      {isLoading && <div className="text-sm text-ink-500">Yükleniyor…</div>}
+      {!active && <div className="text-sm text-ink-500">{t.explorer.typeOrSelect}</div>}
+      {isLoading && <div className="text-sm text-ink-500">{t.common.loading}</div>}
       {error && active && (error as any).status === 404 && (
         <UntrackedKeywordPrompt keyword={active} />
       )}
       {error && (error as any).status !== 404 && (
-        <div className="text-sm text-red-600">Hata: {String((error as any).message || error)}</div>
+        <div className="text-sm text-red-600">{t.common.error}: {String((error as any).message || error)}</div>
       )}
 
       {detail && (
@@ -122,7 +124,7 @@ export default function ExplorerPage() {
           <div className="card card-pad">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <div className="text-sm text-ink-500">Anahtar kelime</div>
+                <div className="text-sm text-ink-500">{t.common.keyword}</div>
                 <div className="text-lg font-semibold text-ink-900">{detail.keyword}</div>
                 {detail.score?.category && (
                   <span className="badge badge-cat mt-2">{detail.score.category}</span>
@@ -133,13 +135,13 @@ export default function ExplorerPage() {
                   <div className="flex gap-1.5 justify-end items-center">
                     {detail.anomaly?.is_anomaly && (
                       <span className="badge bg-amber-50 text-amber-700 border border-amber-100">
-                        ⚡ Anomali σ{detail.anomaly.z_score.toFixed(1)}
+                        {t.explorer.anomaly} σ{detail.anomaly.z_score.toFixed(1)}
                       </span>
                     )}
                     <GrowthBadge pct={detail.score.growth_pct} hot={detail.score.is_hot} />
                   </div>
                   <div className="text-xs text-ink-500 mt-2">
-                    Son 7g ort: <span className="tabular-nums text-ink-700">{detail.score.avg_last_7.toFixed(1)}</span>
+                    {t.explorer.avg7d} <span className="tabular-nums text-ink-700">{detail.score.avg_last_7.toFixed(1)}</span>
                   </div>
                 </div>
               )}
@@ -151,11 +153,11 @@ export default function ExplorerPage() {
             />
             {detail.smart_forecast && detail.smart_forecast.length > 0 ? (
               <div className="text-xs text-ink-500 mt-2">
-                Kesik çizgi: 30 günlük tahmin (son 14 gün baz + 5y mevsimsellik çarpanı). Mavi gölge: %15-30 belirsizlik bandı.
+                {t.explorer.forecastLabelSmart}
               </div>
             ) : detail.forecast && detail.forecast.length > 0 ? (
               <div className="text-xs text-ink-500 mt-2">
-                Kesik çizgi: 7 günlük lineer tahmin. (Mevsimsellik için 5y veri yok — Yönetim'den çek.)
+                {t.explorer.forecastLabelLinear}
               </div>
             ) : null}
           </div>
@@ -164,35 +166,35 @@ export default function ExplorerPage() {
 
           {detail.score && typeof detail.score.volume_monthly === "number" && (
             <div className="card card-pad">
-              <h3 className="font-medium text-ink-900 mb-3">Google Ads · Arama Hacmi</h3>
+              <h3 className="font-medium text-ink-900 mb-3">{t.explorer.googleAdsTitle}</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <div className="label">Aylık ortalama</div>
+                  <div className="label">{t.explorer.monthlyAvg}</div>
                   <div className="stat-num mt-1">{formatVolume(detail.score.volume_monthly)}</div>
-                  <div className="text-xs text-ink-500 mt-0.5">son 12 ay TR</div>
+                  <div className="text-xs text-ink-500 mt-0.5">{t.explorer.last12mTr}</div>
                 </div>
                 <div>
-                  <div className="label">Son 3 ay</div>
+                  <div className="label">{t.explorer.last3Months}</div>
                   <div className="stat-num mt-1">{formatVolume(detail.score.volume_recent ?? null)}</div>
-                  <div className="text-xs text-ink-500 mt-0.5">aylık ortalama</div>
+                  <div className="text-xs text-ink-500 mt-0.5">{t.explorer.monthlyAvgShort}</div>
                 </div>
                 <div>
-                  <div className="label">Rekabet</div>
+                  <div className="label">{t.explorer.competition}</div>
                   <div className="mt-1.5">
                     <span className={`badge ${competitionLabel(detail.score.competition).cls}`}>
                       {competitionLabel(detail.score.competition).text}
                     </span>
                   </div>
                   <div className="text-xs text-ink-500 mt-1">
-                    indeks: {detail.score.competition_index ?? 0}/100
+                    {t.explorer.competitionIndex}: {detail.score.competition_index ?? 0}/100
                   </div>
                 </div>
                 <div>
-                  <div className="label">Reklam teklifi (USD)</div>
+                  <div className="label">{t.explorer.bidUsd}</div>
                   <div className="text-base font-medium mt-1 tabular-nums">
                     ${(detail.score.bid_low ?? 0).toFixed(2)} – ${(detail.score.bid_high ?? 0).toFixed(2)}
                   </div>
-                  <div className="text-xs text-ink-500 mt-0.5">üst sayfa CPC aralığı</div>
+                  <div className="text-xs text-ink-500 mt-0.5">{t.explorer.topCpcRange}</div>
                 </div>
               </div>
             </div>
@@ -200,9 +202,9 @@ export default function ExplorerPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="card card-pad">
-              <h3 className="font-medium text-ink-900 mb-3">Yükselen İlişkili Aramalar</h3>
+              <h3 className="font-medium text-ink-900 mb-3">{t.explorer.risingRelated}</h3>
               {detail.rising.length === 0 ? (
-                <div className="text-sm text-ink-500">Veri yok.</div>
+                <div className="text-sm text-ink-500">{t.common.noData}</div>
               ) : (
                 <ul className="space-y-2 text-sm">
                   {detail.rising.map((r, i) => (
@@ -215,9 +217,9 @@ export default function ExplorerPage() {
               )}
             </div>
             <div className="card card-pad">
-              <h3 className="font-medium text-ink-900 mb-3">Popüler İlişkili</h3>
+              <h3 className="font-medium text-ink-900 mb-3">{t.explorer.popularRelated}</h3>
               {detail.related_top.length === 0 ? (
-                <div className="text-sm text-ink-500">Veri yok.</div>
+                <div className="text-sm text-ink-500">{t.common.noData}</div>
               ) : (
                 <ul className="space-y-2 text-sm">
                   {detail.related_top.map((r, i) => (

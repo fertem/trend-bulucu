@@ -5,31 +5,34 @@ import Link from "next/link";
 import useSWR from "swr";
 import { api, AppSettings, CategoryItem, EnvItem } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
+import { useT, useLang } from "@/lib/i18n";
 
 type Tab = "brand" | "api" | "categories" | "site" | "system";
 
-const TABS: { key: Tab; label: string; emoji: string }[] = [
-  { key: "brand", label: "Marka", emoji: "🏷️" },
-  { key: "api", label: "API Anahtarları", emoji: "🔑" },
-  { key: "categories", label: "Kelime + Kategori", emoji: "📁" },
-  { key: "site", label: "Site", emoji: "🌐" },
-  { key: "system", label: "Sistem", emoji: "⚙️" },
-];
-
 export default function SettingsPage() {
+  const t = useT();
+  const { lang } = useLang();
   const [tab, setTab] = useState<Tab>("brand");
   const { data, mutate } = useSWR<{ settings: AppSettings; configured: boolean }>("/api/settings", api.fetcher);
   const settings = data?.settings;
 
+  const TABS: { key: Tab; label: string; emoji: string }[] = [
+    { key: "brand", label: t.settings.tabs.brand, emoji: "🏷️" },
+    { key: "api", label: t.settings.tabs.api, emoji: "🔑" },
+    { key: "categories", label: t.settings.tabs.categories, emoji: "📁" },
+    { key: "site", label: lang === "en" ? "Site" : "Site", emoji: "🌐" },
+    { key: "system", label: lang === "en" ? "System" : "Sistem", emoji: "⚙️" },
+  ];
+
   return (
     <div>
       <PageHeader
-        title="Ayarlar"
-        subtitle="Marka bilgileri, API anahtarları, kategoriler ve site bağlantısı."
+        title={t.settings.title}
+        subtitle={t.settings.subtitle}
         actions={
           !data?.configured ? (
             <Link href="/settings/setup" className="btn-primary">
-              🪄 Hızlı Kurulum Sihirbazı
+              🪄 {lang === "en" ? "Quick Setup Wizard" : "Hızlı Kurulum Sihirbazı"}
             </Link>
           ) : null
         }

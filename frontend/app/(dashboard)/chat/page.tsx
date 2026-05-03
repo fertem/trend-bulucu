@@ -3,19 +3,13 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
+import { useT } from "@/lib/i18n";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const QUICK_PROMPTS = [
-  "Bu hafta hangi konuda yazsam?",
-  "Sayfa 2'de bekleyen kelimelerimden en hızlı kazanç hangisi?",
-  "Mevsimselliğe göre önümüzdeki ay için strateji öner",
-  "Sitede olmayan en yüksek değerli içerik fırsatı ne?",
-  "CTR'ı düşük başlıklarımı nasıl iyileştiririm?",
-  "Hangi kategoride güçlüyüm, hangisinde zayıf?",
-];
-
 export default function ChatPage() {
+  const t = useT();
+  const QUICK_PROMPTS = t.chat.quickPrompts;
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -91,8 +85,8 @@ export default function ChatPage() {
         }
       }
     } catch (e: any) {
-      setError(e.message || "AI cevap alınamadı");
-      setMessages(newMessages); // boş asistan mesajını sil
+      setError(e.message || t.chat.error);
+      setMessages(newMessages);
     } finally {
       setLoading(false);
     }
@@ -106,16 +100,16 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-180px)]">
       <PageHeader
-        title="🤖 AI Sohbet"
-        subtitle="Verinle doğrudan konuş — trend, GSC, içerik boşluğu hepsi context'te"
+        title={t.chat.title}
+        subtitle={t.chat.subtitle}
         actions={messages.length > 0 ? (
-          <button className="btn-ghost text-sm" onClick={reset}>Sıfırla</button>
+          <button className="btn-ghost text-sm" onClick={reset}>{t.chat.reset}</button>
         ) : null}
       />
 
       {messages.length === 0 && (
         <div className="card card-pad mb-4">
-          <h3 className="font-medium text-ink-900 mb-3">Örnek sorular</h3>
+          <h3 className="font-medium text-ink-900 mb-3">{t.chat.examples}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {QUICK_PROMPTS.map((p) => (
               <button
@@ -151,14 +145,14 @@ export default function ChatPage() {
       >
         <input
           className="input flex-1"
-          placeholder="Verine sor… (örn: hangi kelimeden başlasam?)"
+          placeholder={t.chat.placeholder}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={loading}
           autoFocus
         />
         <button className="btn-primary" disabled={loading || !input.trim()}>
-          {loading ? "…" : "Gönder"}
+          {loading ? "…" : t.chat.send}
         </button>
       </form>
     </div>

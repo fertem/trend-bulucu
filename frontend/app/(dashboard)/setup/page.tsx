@@ -2,13 +2,15 @@
 
 import { PageHeader } from "@/components/PageHeader";
 import { SetupChecklist } from "@/components/SetupChecklist";
+import { useT } from "@/lib/i18n";
 
 export default function SetupGuidePage() {
+  const t = useT();
   return (
     <div>
       <PageHeader
-        title="Kurulum Rehberi"
-        subtitle="Her adımı tamamlayarak sistemi tam kapasiteye ulaştır."
+        title={t.setup.title}
+        subtitle={t.setup.subtitle}
       />
       <SetupChecklist alwaysShow />
 

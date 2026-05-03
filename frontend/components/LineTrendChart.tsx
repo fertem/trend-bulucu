@@ -31,7 +31,7 @@ export function LineTrendChart({
     ...fc.map((p: any) => ({
       date: p.date,
       predicted: p.predicted,
-      band: useSmartForecast ? [p.confidence_low, p.confidence_high] : undefined,
+      band: useSmartForecast ? [p.confidence_low, p.confidence_high] as [number, number] : undefined,
     })),
   ];
 
