@@ -1,0 +1,12 @@
+# Windows batch files MUST use CRLF (Windows CMD requires it)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Unix shell scripts MUST use LF
+*.sh text eol=lf
+
+# Python — LF (PEP 8 + cross-platform)
+*.py text eol=lf
+
+# Default: auto-detect
+* text=auto

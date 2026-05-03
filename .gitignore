@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
+env/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Env (HER ZAMAN .env IGNORE — kişisel API anahtarları!)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Data (kullanıcıya özel veritabanı)
+data/*.db
+data/*.db-journal
+data/*_backup_*.db
+
+# Logs
+*.log
+debug.log
+
+# Personal/private docs
+docs/personal/
+docs/*_private.*
+
+# Setup credentials (Google OAuth indirilen JSON)
+*client_secret_*.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
