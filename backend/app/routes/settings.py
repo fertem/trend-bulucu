@@ -183,8 +183,29 @@ def update_env(body: EnvUpdate):
         written.append(k)
 
     ENV_PATH.write_text(text, encoding="utf-8")
+
+    # .env dosyası değiştirildi → settings nesnesini yeniden yükle
+    # Restart gerektirmeden anahtarlar hemen aktif olur.
+    from ..config import reload_settings
+    try:
+        changed = reload_settings()
+        scheduler_keys = {"COLLECT_HOUR", "COLLECT_MINUTE", "TIMEZONE"}
+        needs_restart = any(k in scheduler_keys for k in written)
+    except Exception as e:
+        return {
+            "written": written,
+            "skipped": skipped,
+            "note": f"Kaydedildi ama reload basarisiz: {e}. Manuel restart gerekebilir.",
+        }
+
     return {
         "written": written,
         "skipped": skipped,
-        "note": "Backend'i yeniden başlat (özellikle API anahtarları için).",
+        "reloaded": True,
+        "needs_restart": needs_restart,
+        "note": (
+            "Zamanlayıcı ayarı değişti, scheduler için backend restart gerekli."
+            if needs_restart
+            else "✓ Anahtarlar hemen aktif — restart gerek yok."
+        ),
     }

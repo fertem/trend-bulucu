@@ -71,3 +71,33 @@ class Settings(BaseSettings):
 
 settings = Settings()
 (BASE_DIR / "data").mkdir(exist_ok=True)
+
+
+def reload_settings() -> dict[str, str]:
+    """`.env` dosyasını yeniden oku ve mevcut `settings` nesnesini güncelle.
+
+    Backend restart gerektirmeden anahtarların hemen aktif olmasını sağlar.
+    Mevcut import edilmiş `settings` referansları otomatik yeni değerleri görür
+    (aynı nesneyi mutate ediyoruz, replace etmiyoruz).
+    """
+    new_values = Settings()
+    changed = {}
+    for key, value in new_values.model_dump().items():
+        old = getattr(settings, key, None)
+        if old != value:
+            changed[key] = "(değişti)"
+        setattr(settings, key, value)
+
+    # AI ve OAuth modüllerinde token cache temizle
+    try:
+        from . import google_ads as _ga
+        _ga._access_token_cache["token"] = ""
+    except Exception:
+        pass
+    try:
+        from . import search_console as _sc
+        _sc._token_cache["token"] = ""
+    except Exception:
+        pass
+
+    return changed

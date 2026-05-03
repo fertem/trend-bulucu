@@ -168,8 +168,9 @@ function APITab() {
     setSaving(true);
     setMsg(null);
     try {
-      const r = await api.updateEnv(updates);
-      setMsg(`✓ ${r.written.length} alan güncellendi. ${r.note}`);
+      const r: any = await api.updateEnv(updates);
+      const reloadIcon = r.reloaded ? "✓" : "⚠";
+      setMsg(`${reloadIcon} ${r.written.length} alan güncellendi. ${r.note || ""}`);
       setUpdates({});
       mutate();
     } catch (e: any) {
@@ -181,10 +182,10 @@ function APITab() {
 
   return (
     <div className="space-y-6">
-      <div className="card card-pad bg-amber-50/40 border-amber-100 text-sm text-amber-900">
-        <strong>Önemli:</strong> API anahtarları <code>.env</code> dosyasına yazılır. Değişiklik sonrası backend'i yeniden başlat:
+      <div className="card card-pad bg-emerald-50/40 border-emerald-100 text-sm text-emerald-900">
+        ✨ <strong>Otomatik aktif:</strong> API anahtarları <code>.env</code>'ye yazılır ve <strong>hemen</strong> kullanılmaya başlar — backend'i yeniden başlatmana gerek yok.
         <br />
-        <code className="text-xs">cd backend && venv\Scripts\python.exe -m uvicorn app.main:app --port 8000</code>
+        <span className="text-xs text-emerald-700">İstisna: Zamanlayıcı ayarları (COLLECT_HOUR/MINUTE/TIMEZONE) için restart gerekir.</span>
       </div>
 
       {groups.map((g) => (
