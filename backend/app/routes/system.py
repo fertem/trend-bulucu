@@ -1,8 +1,9 @@
 """Sistem durum/tazelik endpoint'i — tüm veri kaynaklarının son güncelleme tarihi."""
 import logging
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,7 @@ from ..models import (
     TrendScore,
     ContentGapHistory,
 )
+from .. import system_updates
 
 
 logger = logging.getLogger(__name__)
@@ -284,3 +286,54 @@ def freshness(db: Annotated[Session, Depends(get_db)]):
 
         "content_gaps_last_refresh": _iso(last_gap),
     }
+
+
+# ───────────────── self-update + reset ──────────────────────────────
+
+class UpdateApplyIn(BaseModel):
+    install_deps: bool = True
+
+
+class ResetIn(BaseModel):
+    scope: Literal["data", "data_and_settings", "all"]
+    confirm: str  # must equal "RESET"
+
+
+@router.get("/version")
+def version_info():
+    """Current commit / branch info."""
+    return system_updates.get_current_version()
+
+
+@router.get("/check-update")
+def check_update():
+    """git fetch and report how far behind origin/main."""
+    return system_updates.check_for_updates()
+
+
+@router.post("/update")
+def apply_update(body: UpdateApplyIn):
+    """git pull + deps install + schedule restart."""
+    result = system_updates.apply_update(install_deps=body.install_deps)
+    if result.get("status") == "error":
+        raise HTTPException(status_code=400, detail=result.get("error", "update failed"))
+    return result
+
+
+@router.post("/reset")
+def reset_data(body: ResetIn, db: Annotated[Session, Depends(get_db)]):
+    """Wipe data — three scopes (data / data_and_settings / all)."""
+    if body.confirm != "RESET":
+        raise HTTPException(status_code=400, detail="Confirmation phrase must be 'RESET'")
+    try:
+        result = system_updates.wipe_data(db, body.scope)
+    except Exception as e:
+        logger.exception("reset failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # For 'all' scope, schedule restart so the app reinitializes settings/scheduler
+    if body.scope == "all":
+        system_updates.schedule_restart(delay_seconds=2)
+        result["restarting"] = True
+
+    return result

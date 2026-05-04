@@ -115,6 +115,23 @@ export const api = {
     request<{ status: string; message: string }>("/api/system/refresh-all", { method: "POST" }),
   systemSetupStatus: () => request<SetupStatus>("/api/system/setup-status"),
 
+  // Self-update + reset
+  systemVersion: () =>
+    request<{ is_git: boolean; commit?: string; short?: string; branch?: string; subject?: string }>(
+      "/api/system/version",
+    ),
+  systemCheckUpdate: () => request<UpdateCheckResponse>("/api/system/check-update"),
+  systemApplyUpdate: (install_deps = true) =>
+    request<{ status: string; eta_seconds: number; log: string[]; after?: any }>(
+      "/api/system/update",
+      { method: "POST", body: JSON.stringify({ install_deps }) },
+    ),
+  systemReset: (scope: "data" | "data_and_settings" | "all") =>
+    request<{ scope: string; cleared: string[]; errors: string[]; restarting?: boolean }>(
+      "/api/system/reset",
+      { method: "POST", body: JSON.stringify({ scope, confirm: "RESET" }) },
+    ),
+
   // AI Chat
   aiChat: (messages: { role: "user" | "assistant"; content: string }[]) =>
     request<{ role: string; content: string }>("/api/ai/chat", {
@@ -667,6 +684,20 @@ export type SetupStatus = {
   optional_done: number;
   optional_total: number;
   fully_setup: boolean;
+};
+
+export type UpdateCheckResponse = {
+  is_git: boolean;
+  branch?: string;
+  current?: { commit?: string; short?: string; branch?: string; subject?: string };
+  behind?: number;
+  ahead?: number;
+  has_local_changes?: boolean;
+  changelog?: { hash: string; subject: string; author: string; date: string }[];
+  requirements_changed?: boolean;
+  package_json_changed?: boolean;
+  update_available?: boolean;
+  error?: string;
 };
 
 export type SystemFreshness = {

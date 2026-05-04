@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { api, AppSettings, CategoryItem, EnvItem } from "@/lib/api";
+import { api, AppSettings, CategoryItem, EnvItem, UpdateCheckResponse } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { useT, useLang } from "@/lib/i18n";
 
@@ -434,46 +434,296 @@ function SystemTab({ settings, onSave }: { settings: AppSettings; onSave: () => 
   };
 
   return (
-    <div className="card card-pad max-w-2xl space-y-4">
-      <p className="text-sm text-ink-500">{t.settings.system.hint}</p>
+    <div className="space-y-6 max-w-2xl">
+      <div className="card card-pad space-y-4">
+        <p className="text-sm text-ink-500">{t.settings.system.hint}</p>
 
-      <div>
-        <label className="label block mb-1">{t.settings.system.language}</label>
-        <select
-          className="input"
-          value={form.language}
-          onChange={(e) => setForm({ ...form, language: e.target.value })}
-        >
-          <option value="tr-TR">🇹🇷 Türkçe (tr-TR)</option>
-          <option value="en-US">🇺🇸 English (en-US)</option>
-        </select>
-        <p className="text-xs text-ink-500 mt-1">{t.settings.system.languageHint}</p>
+        <div>
+          <label className="label block mb-1">{t.settings.system.language}</label>
+          <select
+            className="input"
+            value={form.language}
+            onChange={(e) => setForm({ ...form, language: e.target.value })}
+          >
+            <option value="tr-TR">🇹🇷 Türkçe (tr-TR)</option>
+            <option value="en-US">🇺🇸 English (en-US)</option>
+          </select>
+          <p className="text-xs text-ink-500 mt-1">{t.settings.system.languageHint}</p>
+        </div>
+
+        <div>
+          <label className="label block mb-1">{t.settings.system.geo}</label>
+          <select
+            className="input"
+            value={form.geo_target}
+            onChange={(e) => setForm({ ...form, geo_target: e.target.value })}
+          >
+            <option value="TR">{t.settings.system.geoTr}</option>
+            <option value="US">{t.settings.system.geoUs}</option>
+            <option value="GB">{t.settings.system.geoGb}</option>
+            <option value="DE">{t.settings.system.geoDe}</option>
+            <option value="FR">{t.settings.system.geoFr}</option>
+            <option value="">{t.settings.system.geoWorld}</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button className="btn-primary" onClick={save} disabled={saving}>
+            {saving ? t.common.saving : t.common.save}
+          </button>
+          {msg && <span className={`text-sm ${msg.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{msg}</span>}
+        </div>
+
+        <p className="text-xs text-ink-500 pt-2 border-t border-ink-100">{t.settings.system.footer}</p>
       </div>
 
+      <UpdateCard />
+      <ResetCard />
+    </div>
+  );
+}
+
+function UpdateCard() {
+  const t = useT();
+  const [check, setCheck] = useState<UpdateCheckResponse | null>(null);
+  const [busy, setBusy] = useState<"check" | "apply" | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"idle" | "applying" | "restarting" | "reconnecting" | "done">("idle");
+  const [version, setVersion] = useState<{ is_git: boolean; short?: string; subject?: string; branch?: string } | null>(null);
+
+  useEffect(() => {
+    api.systemVersion().then((v) => setVersion(v)).catch(() => {});
+  }, []);
+
+  const runCheck = async () => {
+    setBusy("check");
+    setErr(null);
+    try {
+      const r = await api.systemCheckUpdate();
+      setCheck(r);
+      if (r.error) setErr(r.error);
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const apply = async () => {
+    setBusy("apply");
+    setErr(null);
+    setPhase("applying");
+    try {
+      await api.systemApplyUpdate(true);
+      setPhase("restarting");
+      // Poll for backend to come back
+      const startedAt = Date.now();
+      const poll = async () => {
+        while (Date.now() - startedAt < 60_000) {
+          await new Promise((r) => setTimeout(r, 2000));
+          try {
+            const v = await api.systemVersion();
+            if (v) {
+              setVersion(v);
+              setPhase("done");
+              setCheck(null);
+              return;
+            }
+          } catch {}
+          setPhase("reconnecting");
+        }
+      };
+      poll();
+    } catch (e: any) {
+      setErr(e.message);
+      setPhase("idle");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="card card-pad space-y-3">
       <div>
-        <label className="label block mb-1">{t.settings.system.geo}</label>
-        <select
-          className="input"
-          value={form.geo_target}
-          onChange={(e) => setForm({ ...form, geo_target: e.target.value })}
-        >
-          <option value="TR">{t.settings.system.geoTr}</option>
-          <option value="US">{t.settings.system.geoUs}</option>
-          <option value="GB">{t.settings.system.geoGb}</option>
-          <option value="DE">{t.settings.system.geoDe}</option>
-          <option value="FR">{t.settings.system.geoFr}</option>
-          <option value="">{t.settings.system.geoWorld}</option>
-        </select>
+        <h3 className="font-medium text-ink-900">{t.settings.update.title}</h3>
+        <p className="text-xs text-ink-500 mt-1">{t.settings.update.hint}</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button className="btn-primary" onClick={save} disabled={saving}>
-          {saving ? t.common.saving : t.common.save}
+      {version?.is_git === false ? (
+        <div className="text-sm text-ink-500">{t.settings.update.notGit}</div>
+      ) : (
+        <>
+          <div className="text-xs text-ink-500">
+            {t.settings.update.currentLabel}: <code className="text-ink-700 bg-ink-100 px-1.5 py-0.5 rounded">{version?.short || "—"}</code>
+            {version?.branch && <span className="ml-2">({version.branch})</span>}
+            {version?.subject && <div className="text-ink-700 mt-1 truncate">{version.subject}</div>}
+          </div>
+
+          {phase === "idle" && !check && (
+            <button className="btn-primary text-sm" onClick={runCheck} disabled={busy !== null}>
+              {busy === "check" ? t.settings.update.checking : t.settings.update.checkBtn}
+            </button>
+          )}
+
+          {check && check.update_available === false && phase === "idle" && (
+            <div className="text-sm text-emerald-700">{t.settings.update.upToDate}</div>
+          )}
+
+          {check && check.update_available && (
+            <div className="space-y-2">
+              <div className="text-sm text-ink-700">{t.settings.update.behindBy(check.behind || 0)}</div>
+              {check.has_local_changes && (
+                <div className="text-sm text-amber-700">{t.settings.update.hasLocalChanges}</div>
+              )}
+              {(check.requirements_changed || check.package_json_changed) && (
+                <div className="text-xs text-ink-500">{t.settings.update.depsWillInstall}</div>
+              )}
+              {check.changelog && check.changelog.length > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-ink-700">{t.settings.update.changelog} ({check.changelog.length})</summary>
+                  <ul className="mt-2 space-y-1">
+                    {check.changelog.map((c) => (
+                      <li key={c.hash} className="text-ink-700">
+                        <code className="text-ink-500 mr-2">{c.hash}</code>
+                        {c.subject}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              <button
+                className="btn-primary text-sm"
+                onClick={apply}
+                disabled={busy !== null || check.has_local_changes || phase !== "idle"}
+              >
+                {busy === "apply" ? t.settings.update.applying : t.settings.update.applyBtn}
+              </button>
+            </div>
+          )}
+
+          {phase === "restarting" && (
+            <div className="text-sm text-ink-700">{t.settings.update.restarting}</div>
+          )}
+          {phase === "reconnecting" && (
+            <div className="text-sm text-ink-500">{t.settings.update.reconnecting}</div>
+          )}
+          {phase === "done" && (
+            <div className="text-sm text-emerald-700">{t.settings.update.done}</div>
+          )}
+
+          {err && <div className="text-sm text-red-600">{t.settings.update.error}: {err}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ResetCard() {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [scope, setScope] = useState<"data" | "data_and_settings" | "all">("data");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (confirm !== "RESET") return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await api.systemReset(scope);
+      setMsg(t.settings.reset.cleared(r.cleared.length));
+      setOpen(false);
+      setConfirm("");
+      if (r.restarting) {
+        setTimeout(() => window.location.reload(), 6000);
+      } else {
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="card card-pad border-red-100 bg-red-50/20 space-y-3">
+      <div>
+        <h3 className="font-medium text-ink-900">{t.settings.reset.title}</h3>
+        <p className="text-xs text-ink-500 mt-1">{t.settings.reset.hint}</p>
+      </div>
+
+      {msg && <div className="text-sm text-emerald-700">{msg}{scope === "all" ? ` ${t.settings.reset.restartingNote}` : ""}</div>}
+      {err && <div className="text-sm text-red-600">{t.settings.reset.error}: {err}</div>}
+
+      {!open ? (
+        <button
+          className="text-sm px-3 py-2 rounded-md border border-red-200 text-red-700 hover:bg-red-50"
+          onClick={() => setOpen(true)}
+        >
+          {t.settings.reset.openBtn}
         </button>
-        {msg && <span className={`text-sm ${msg.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{msg}</span>}
-      </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-xs text-ink-700">{t.settings.reset.modalIntro}</p>
+          <div className="space-y-2">
+            {[
+              { v: "data" as const, label: t.settings.reset.scopeData, hint: t.settings.reset.scopeDataHint },
+              { v: "data_and_settings" as const, label: t.settings.reset.scopeDataAndSettings, hint: t.settings.reset.scopeDataAndSettingsHint },
+              { v: "all" as const, label: t.settings.reset.scopeAll, hint: t.settings.reset.scopeAllHint },
+            ].map((opt) => (
+              <label
+                key={opt.v}
+                className={`block p-3 rounded-md border cursor-pointer transition ${
+                  scope === opt.v ? "border-red-200 bg-white" : "border-ink-200 bg-white hover:border-red-100"
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    checked={scope === opt.v}
+                    onChange={() => setScope(opt.v)}
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-ink-900">{opt.label}</div>
+                    <div className="text-xs text-ink-500 mt-0.5">{opt.hint}</div>
+                  </div>
+                </div>
+              </label>
+            ))}
+          </div>
 
-      <p className="text-xs text-ink-500 pt-2 border-t border-ink-100">{t.settings.system.footer}</p>
+          <div>
+            <label className="label block mb-1">{t.settings.reset.confirmLabel}</label>
+            <input
+              className="input font-mono"
+              placeholder={t.settings.reset.confirmPh}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              className="text-sm px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              onClick={submit}
+              disabled={busy || confirm !== "RESET"}
+            >
+              {busy ? t.settings.reset.submitting : t.settings.reset.submitBtn}
+            </button>
+            <button
+              className="btn-ghost text-sm"
+              onClick={() => { setOpen(false); setConfirm(""); setErr(null); }}
+              disabled={busy}
+            >
+              {t.settings.reset.cancel}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
