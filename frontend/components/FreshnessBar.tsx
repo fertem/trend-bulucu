@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { api, SystemFreshness } from "@/lib/api";
+import { api, SystemFreshness, CurrentRunResponse } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 
@@ -18,42 +18,48 @@ export function FreshnessBar() {
     refreshInterval: 30_000,
   });
 
+  // Live current-run state — polled every 5s while a run is active
+  const { data: runState, mutate: mutateRun } = useSWR<CurrentRunResponse>(
+    "/api/admin/current-run",
+    api.fetcher,
+    { refreshInterval: 5_000 },
+  );
+
   const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
 
-  // Refreshing sırasında daha sık yenile
-  useEffect(() => {
-    if (!refreshing) return;
-    const interval = setInterval(() => mutate(), 15_000);
-    return () => clearInterval(interval);
-  }, [refreshing, mutate]);
+  const isRunning = runState?.run?.status === "running";
+  const cooldown = runState?.cooldown;
+  const lastRun = runState?.run;
 
-  // 12 dakika sonra otomatik kapat (max sürec)
+  // While a run is in progress, mirror it into local state so button stays disabled
   useEffect(() => {
-    if (!startedAt) return;
-    const tm = setTimeout(() => {
-      setRefreshing(false);
-      setMsg(t.freshness.timeout);
-    }, 12 * 60 * 1000);
-    return () => clearTimeout(tm);
-  }, [startedAt, t.freshness.timeout]);
+    if (isRunning) setRefreshing(true);
+    else setRefreshing(false);
+  }, [isRunning]);
 
+  // When a run finishes, surface the result
   useEffect(() => {
-    if (!refreshing || !data?.trends_last_collected || !startedAt) return;
-    const collectedAt = new Date(data.trends_last_collected).getTime();
-    if (collectedAt > startedAt) {
-      setRefreshing(false);
+    if (!lastRun) return;
+    if (lastRun.status === "running") return;
+    if (lastRun.status === "rate_limited") {
+      setMsg(t.freshness.rateLimited);
+    } else if (lastRun.status === "success") {
       setMsg(t.freshness.done);
+    } else if (lastRun.status === "partial") {
+      setMsg(t.freshness.partialSuccess(lastRun.succeeded || 0, lastRun.attempted || 0));
+    } else if (lastRun.status === "failed") {
+      setMsg(`${t.freshness.runFailed} ${lastRun.error || ""}`);
     }
-  }, [data?.trends_last_collected, refreshing, startedAt, t.freshness.done]);
+  }, [lastRun?.status, lastRun?.error, lastRun?.succeeded, lastRun?.attempted, t]);
 
   const refreshAll = async () => {
     setRefreshing(true);
-    setStartedAt(Date.now());
     setMsg(t.freshness.started);
     try {
       await api.systemRefreshAll();
+      mutate();
+      mutateRun();
     } catch (e: any) {
       setRefreshing(false);
       setMsg(`${t.common.error}: ${e.message}`);
@@ -75,24 +81,18 @@ export function FreshnessBar() {
       value: data.historical_last_fetched,
       meta: data.historical_succeeded ? t.freshness.keywordsCount(data.historical_succeeded) : undefined,
     },
-    {
-      label: t.freshness.sources.site,
-      value: data.site_last_scanned,
-    },
+    { label: t.freshness.sources.site, value: data.site_last_scanned },
     {
       label: t.freshness.sources.gsc,
       value: data.gsc_last_synced,
       meta: data.gsc_imported_rows ? t.freshness.queriesCount(data.gsc_imported_rows) : undefined,
     },
-    {
-      label: t.freshness.sources.ads,
-      value: data.ads_volumes_last_fetched,
-    },
-    {
-      label: t.freshness.sources.gaps,
-      value: data.content_gaps_last_refresh,
-    },
+    { label: t.freshness.sources.ads, value: data.ads_volumes_last_fetched },
+    { label: t.freshness.sources.gaps, value: data.content_gaps_last_refresh },
   ];
+
+  const cooldownActive = cooldown?.blocked && (cooldown.remaining_seconds || 0) > 0;
+  const cooldownMins = cooldown?.remaining_seconds ? Math.ceil(cooldown.remaining_seconds / 60) : 0;
 
   return (
     <div className="card card-pad mb-6 bg-ink-50/50">
@@ -101,16 +101,34 @@ export function FreshnessBar() {
           <div className="text-xs font-medium text-ink-500 uppercase tracking-wide">
             {t.freshness.overline}
           </div>
-          {msg && (
-            <div className={`text-xs mt-1 ${msg.startsWith("✓") ? "text-emerald-700" : msg.startsWith("Hata") ? "text-red-600" : "text-ink-700"}`}>
+          {isRunning && lastRun && (
+            <div className="text-xs mt-1 text-ink-700">
+              {t.freshness.progress(lastRun.succeeded || 0, lastRun.attempted || 0)}
+            </div>
+          )}
+          {!isRunning && msg && (
+            <div className={`text-xs mt-1 ${
+              msg.startsWith("✓") ? "text-emerald-700" :
+              msg.startsWith("❌") ? "text-red-600" :
+              msg.startsWith(t.common.error) ? "text-red-600" :
+              "text-ink-700"
+            }`}>
               {msg}
+            </div>
+          )}
+          {cooldownActive && (
+            <div className="mt-2 p-2.5 rounded-md bg-red-50 border border-red-100 text-xs">
+              <div className="font-medium text-red-700">{t.freshness.rateLimited}</div>
+              <div className="text-red-600 mt-0.5">{t.freshness.cooldownRemaining(cooldownMins)}</div>
+              <div className="text-ink-700 mt-1">{t.freshness.cooldownTip}</div>
             </div>
           )}
         </div>
         <button
           className="btn-primary text-xs whitespace-nowrap"
           onClick={refreshAll}
-          disabled={refreshing}
+          disabled={refreshing || cooldownActive}
+          title={cooldownActive ? t.freshness.cooldownRemaining(cooldownMins) : undefined}
         >
           {refreshing ? (
             <span className="flex items-center gap-1.5">
@@ -120,6 +138,8 @@ export function FreshnessBar() {
               </svg>
               {t.freshness.updating}
             </span>
+          ) : cooldownActive ? (
+            `~${cooldownMins} dk`
           ) : (
             t.freshness.refreshAll
           )}

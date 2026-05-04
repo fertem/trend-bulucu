@@ -114,6 +114,7 @@ export const api = {
   systemRefreshAll: () =>
     request<{ status: string; message: string }>("/api/system/refresh-all", { method: "POST" }),
   systemSetupStatus: () => request<SetupStatus>("/api/system/setup-status"),
+  systemCurrentRun: () => request<CurrentRunResponse>("/api/admin/current-run"),
 
   // Self-update + reset
   systemVersion: () =>
@@ -684,6 +685,25 @@ export type SetupStatus = {
   optional_done: number;
   optional_total: number;
   fully_setup: boolean;
+};
+
+export type CurrentRunResponse = {
+  run: {
+    id: number;
+    status: "running" | "success" | "partial" | "failed" | "rate_limited" | string;
+    attempted: number;
+    succeeded: number;
+    failed: number;
+    started_at: string | null;
+    finished_at: string | null;
+    error: string | null;
+  } | null;
+  cooldown: {
+    blocked: boolean;
+    blocked_at?: string;
+    remaining_seconds?: number;
+    retry_at?: string;
+  };
 };
 
 export type UpdateCheckResponse = {

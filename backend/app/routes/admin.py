@@ -125,3 +125,30 @@ def list_runs(db: Annotated[Session, Depends(get_db)]):
         }
         for r in rows
     ]
+
+
+@router.get("/current-run")
+def current_run(db: Annotated[Session, Depends(get_db)]):
+    """Live progress + cooldown info for the freshness banner."""
+    from .. import collector
+    last = (
+        db.query(CollectionRun)
+        .order_by(CollectionRun.started_at.desc())
+        .first()
+    )
+    cooldown = collector.get_cooldown_status()
+    if not last:
+        return {"run": None, "cooldown": cooldown}
+    return {
+        "run": {
+            "id": last.id,
+            "status": last.status,
+            "attempted": last.keywords_attempted,
+            "succeeded": last.keywords_succeeded,
+            "failed": last.keywords_failed,
+            "started_at": last.started_at.isoformat() if last.started_at else None,
+            "finished_at": last.finished_at.isoformat() if last.finished_at else None,
+            "error": last.error,
+        },
+        "cooldown": cooldown,
+    }

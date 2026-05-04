@@ -26,7 +26,15 @@ router = APIRouter(prefix="/api/system", tags=["system"], dependencies=[Depends(
 
 
 def _full_refresh():
-    """Daily scheduler ile aynı pipeline — manuel tetikleme için."""
+    """Daily scheduler ile aynı pipeline — manuel tetikleme için.
+
+    Pipeline (her adım kendi try/except'inde — bir adımın hatası diğerlerini durdurmaz):
+      1. Pytrends collection (en uzun, rate-limit yiyebilir)
+      2. Analytics — skor / forecast / anomali
+      3. Site scan — lokal kaynak kodu klasörünü tara
+      4. İçerik boşluğu refresh (site scan'a + trend skoruna bağlı)
+      5. Search Console sync (son 28 gün)
+    """
     from .. import collector, analytics, search_console, site_coverage
 
     logger.info("[refresh-all] starting...")
@@ -42,6 +50,15 @@ def _full_refresh():
         logger.info("[refresh-all] recomputed %d scores", n)
     except Exception as e:
         logger.warning("[refresh-all] score recompute failed: %s", e)
+    finally:
+        db.close()
+
+    db = SessionLocal()
+    try:
+        scan = site_coverage.scan_site(db)
+        logger.info("[refresh-all] site scan: %s", scan)
+    except Exception as e:
+        logger.warning("[refresh-all] site scan failed: %s", e)
     finally:
         db.close()
 

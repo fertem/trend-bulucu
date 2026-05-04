@@ -5,8 +5,9 @@ Rate limit dostu: kelimeler arası gecikme + exponential backoff + tek başarıs
 from __future__ import annotations
 
 import logging
+import random
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Iterable
 
 import pandas as pd
@@ -31,6 +32,60 @@ from .seeds import SEED_KEYWORDS
 logger = logging.getLogger(__name__)
 
 
+# How long to refuse new collection runs after a Google rate-limit block
+RATE_LIMIT_COOLDOWN = timedelta(hours=1)
+
+
+class RateLimitError(Exception):
+    """Google has blocked our IP — /sorry/ redirect or repeated 429."""
+
+    def __init__(self, message: str = "Google rate limit (429) — IP geçici bloklu"):
+        super().__init__(message)
+
+
+def _is_rate_limit(exc: Exception) -> bool:
+    """Detect Google's /sorry/ redirect or 'too many 429' response."""
+    msg = str(exc).lower()
+    return (
+        "/sorry/" in msg
+        or "too many 429" in msg
+        or "429" in msg and "google.com" in msg
+    )
+
+
+def get_cooldown_status() -> dict:
+    """Check if a recent run failed with rate-limit; return remaining cooldown."""
+    db = SessionLocal()
+    try:
+        last = (
+            db.query(CollectionRun)
+            .filter(CollectionRun.status.in_(["failed", "rate_limited"]))
+            .order_by(CollectionRun.id.desc())
+            .first()
+        )
+        if not last or not last.error:
+            return {"blocked": False}
+        if "rate" not in (last.error or "").lower() and "/sorry/" not in (last.error or "").lower():
+            return {"blocked": False}
+        ended = last.finished_at or last.started_at
+        if not ended:
+            return {"blocked": False}
+        if isinstance(ended, str):
+            ended = datetime.fromisoformat(ended)
+        elapsed = datetime.utcnow() - ended
+        if elapsed >= RATE_LIMIT_COOLDOWN:
+            return {"blocked": False}
+        remaining = RATE_LIMIT_COOLDOWN - elapsed
+        return {
+            "blocked": True,
+            "blocked_at": ended.isoformat(),
+            "remaining_seconds": int(remaining.total_seconds()),
+            "retry_at": (ended + RATE_LIMIT_COOLDOWN).isoformat(),
+        }
+    finally:
+        db.close()
+
+
 def _new_client() -> TrendReq:
     return TrendReq(
         hl=settings.pytrends_hl,
@@ -50,13 +105,20 @@ def ensure_seed_keywords(db: Session) -> None:
 
 
 def _backoff_call(fn, *args, **kwargs):
-    """Exponential backoff: 4s → 8s → 16s, max_retries times."""
+    """Exponential backoff: 4s → 8s → 16s, max_retries times.
+
+    If the error is Google's /sorry/ rate-limit page we ABORT immediately
+    (no point retrying — the IP is blocked).
+    """
     last_err: Exception | None = None
     for attempt in range(settings.max_retries):
         try:
             return fn(*args, **kwargs)
-        except Exception as e:  # pytrends throws generic Exception/ResponseError
+        except Exception as e:
             last_err = e
+            if _is_rate_limit(e):
+                logger.error("pytrends RATE-LIMITED (attempt %d): aborting — %s", attempt + 1, str(e)[:200])
+                raise RateLimitError() from e
             wait = (2 ** (attempt + 2))
             logger.warning("pytrends call failed (attempt %d): %s — sleeping %ds", attempt + 1, e, wait)
             time.sleep(wait)
@@ -260,8 +322,19 @@ def collect_historical_all() -> dict:
 
 def collect_all(extra_keywords: Iterable[str] | None = None) -> dict:
     """Aktif tüm kelimeler için tam veri toplama döngüsü."""
+    # Pre-flight: respect cooldown if we were recently rate-limited
+    cd = get_cooldown_status()
+    if cd.get("blocked"):
+        logger.warning("collect_all aborted — rate-limit cooldown (%ds remaining)", cd.get("remaining_seconds"))
+        return {
+            "status": "rate_limited",
+            "error": "Google IP geçici bloklu — cooldown sürüyor",
+            "retry_at": cd.get("retry_at"),
+            "remaining_seconds": cd.get("remaining_seconds"),
+        }
+
     db: Session = SessionLocal()
-    run = CollectionRun(started_at=datetime.utcnow())
+    run = CollectionRun(started_at=datetime.utcnow(), status="running")
     db.add(run)
     db.commit()
     db.refresh(run)
@@ -281,6 +354,7 @@ def collect_all(extra_keywords: Iterable[str] | None = None) -> dict:
 
         client = _new_client()
         succeeded, failed = 0, 0
+        rate_limited = False
 
         for idx, kw in enumerate(keywords):
             try:
@@ -298,22 +372,40 @@ def collect_all(extra_keywords: Iterable[str] | None = None) -> dict:
 
                 succeeded += 1
                 logger.info("[%d/%d] OK: %s", idx + 1, len(keywords), kw)
+            except RateLimitError as e:
+                # IP blocked — abort the whole run immediately. No point hammering.
+                rate_limited = True
+                logger.error("[%d/%d] RATE LIMIT: aborting collection", idx + 1, len(keywords))
+                run.error = "Google rate limit (429) — IP geçici bloklu, ~1 saat bekleyin"
+                break
             except Exception as e:
                 failed += 1
                 logger.error("[%d/%d] FAIL: %s — %s", idx + 1, len(keywords), kw, e)
 
+            # Live progress update — UI sees current succeeded/failed counts
+            run.keywords_succeeded = succeeded
+            run.keywords_failed = failed
+            db.commit()
+
             if idx < len(keywords) - 1:
-                time.sleep(settings.request_delay_seconds)
+                # Jittered delay so requests look less robotic
+                base = max(2, settings.request_delay_seconds)
+                jitter = random.uniform(0, base * 0.5)
+                time.sleep(base + jitter)
 
         run.keywords_succeeded = succeeded
         run.keywords_failed = failed
         run.finished_at = datetime.utcnow()
-        if failed == 0:
+        if rate_limited:
+            run.status = "rate_limited"
+        elif failed == 0 and succeeded > 0:
             run.status = "success"
         elif succeeded > 0:
             run.status = "partial"
         else:
             run.status = "failed"
+            if not run.error:
+                run.error = "Hiçbir kelime için veri çekilemedi"
         db.commit()
 
         # Google Ads volume verisini güncelle (yapılandırılmışsa)
