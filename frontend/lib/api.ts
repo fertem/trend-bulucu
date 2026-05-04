@@ -121,6 +121,17 @@ export const api = {
     request<{ status: string; message: string }>("/api/system/refresh-all", { method: "POST" }),
   systemSetupStatus: () => request<SetupStatus>("/api/system/setup-status"),
   systemCurrentRun: () => request<CurrentRunResponse>("/api/admin/current-run"),
+  testApiKey: (provider: "anthropic" | "openai" | "google_ads" | "search_console") =>
+    request<{ ok: boolean; message: string; detail?: string }>(
+      "/api/settings/test-key",
+      { method: "POST", body: JSON.stringify({ provider }) },
+    ),
+  settingsHealth: () => request<HealthCheckResponse>("/api/settings/health"),
+  testSitePath: (path?: string) =>
+    request<{ ok: boolean; message: string; detail?: string; warning?: boolean }>(
+      "/api/settings/test-site-path",
+      { method: "POST", body: JSON.stringify({ path: path ?? null }) },
+    ),
 
   // Self-update + reset
   systemVersion: () =>
@@ -708,6 +719,21 @@ export type SetupStatus = {
   required_total: number;
   optional_done: number;
   optional_total: number;
+  fully_setup: boolean;
+};
+
+export type HealthCheckResponse = {
+  items: {
+    id: string;
+    label: string;
+    status: "ok" | "missing" | "partial" | "optional";
+    detail: string;
+    action_url: string;
+    tab: string | null;
+  }[];
+  required_ok: number;
+  required_total: number;
+  optional_ok: number;
   fully_setup: boolean;
 };
 

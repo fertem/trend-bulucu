@@ -729,6 +729,18 @@ export const en: Dict = {
       industryPh: "e.g. education, e-commerce, SaaS",
       saved: "✓ Brand details saved.",
     },
+    health: {
+      title: "Connection Status",
+      ready: "System ready",
+      partial: (done: number, total: number) => `${done}/${total} required steps done`,
+      legend: "🟢 ready · 🟡 partial · 🔴 missing · ⚪ optional",
+      go: "Open",
+    },
+    test: {
+      btn: "Test",
+      testing: "Testing…",
+      noKey: "No key set",
+    },
     api: {
       autoActive: "Auto-active:",
       autoActiveText: "API keys are written to .env and used immediately — no backend restart needed.",

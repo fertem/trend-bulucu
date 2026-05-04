@@ -728,6 +728,18 @@ export const tr = {
       industryPh: "örn. eğitim, e-ticaret, SaaS",
       saved: "✓ Marka bilgileri kaydedildi.",
     },
+    health: {
+      title: "Bağlantı Durumu",
+      ready: "Sistem hazır",
+      partial: (done: number, total: number) => `${done}/${total} zorunlu adım tamam`,
+      legend: "🟢 hazır · 🟡 kısmi · 🔴 eksik · ⚪ opsiyonel",
+      go: "Aç",
+    },
+    test: {
+      btn: "Test",
+      testing: "Test ediliyor…",
+      noKey: "Anahtar tanımlı değil",
+    },
     api: {
       autoActive: "Otomatik aktif:",
       autoActiveText: "API anahtarları .env'ye yazılır ve hemen kullanılmaya başlar — backend'i yeniden başlatmana gerek yok.",

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { api, AppSettings, CategoryItem, EnvItem, UpdateCheckResponse } from "@/lib/api";
+import { api, AppSettings, CategoryItem, EnvItem, UpdateCheckResponse, HealthCheckResponse } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { useT, useLang } from "@/lib/i18n";
 
@@ -36,6 +36,8 @@ export default function SettingsPage() {
           ) : null
         }
       />
+
+      <HealthCard onJump={(t) => setTab(t)} />
 
       <div className="flex gap-1 mb-6 flex-wrap border-b border-ink-200 pb-2">
         {TABS.map((t) => (
@@ -222,6 +224,14 @@ function APITab() {
   );
 }
 
+// Env key → which provider's test endpoint to use (null = no test available)
+const TEST_PROVIDER_FOR: Record<string, "anthropic" | "openai" | "google_ads" | "search_console" | null> = {
+  ANTHROPIC_API_KEY: "anthropic",
+  OPENAI_API_KEY: "openai",
+  GOOGLE_ADS_DEVELOPER_TOKEN: "google_ads",
+  SEARCH_CONSOLE_SITE_URL: "search_console",
+};
+
 function EnvField({
   envKey, current, newValue, onChange,
 }: {
@@ -229,6 +239,7 @@ function EnvField({
 }) {
   const t = useT();
   const placeholder = current.is_set ? current.value : t.settings.api.empty;
+  const testProvider = TEST_PROVIDER_FOR[envKey];
   return (
     <div>
       <label className="label block mb-1">{envKey}</label>
@@ -243,6 +254,9 @@ function EnvField({
         <div className="text-xs text-ink-500 mt-0.5">
           {t.settings.api.currentValue}: <span className="font-mono">{current.value}</span> — {t.settings.api.changeHint}
         </div>
+      )}
+      {testProvider && current.is_set && (
+        <TestKeyButton provider={testProvider} />
       )}
     </div>
   );
@@ -376,6 +390,8 @@ function SiteTab({ settings, onSave }: { settings: AppSettings; onSave: () => vo
   const [path, setPath] = useState(settings.site_path);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string; detail?: string; warning?: boolean } | null>(null);
 
   const save = async () => {
     setSaving(true);
@@ -391,6 +407,19 @@ function SiteTab({ settings, onSave }: { settings: AppSettings; onSave: () => vo
     }
   };
 
+  const testPath = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const r = await api.testSitePath(path);
+      setTestResult(r);
+    } catch (e: any) {
+      setTestResult({ ok: false, message: t.common.error, detail: e.message });
+    } finally {
+      setTesting(false);
+    }
+  };
+
   return (
     <div className="card card-pad max-w-2xl space-y-4">
       <p className="text-sm text-ink-500">{t.settings.site.hint}</p>
@@ -400,10 +429,27 @@ function SiteTab({ settings, onSave }: { settings: AppSettings; onSave: () => vo
         onChange={setPath}
         placeholder={t.settings.site.placeholder}
       />
+      {testResult && (
+        <div className={`text-sm p-2 rounded-md ${
+          testResult.ok && !testResult.warning ? "bg-emerald-50 text-emerald-700 border border-emerald-100" :
+          testResult.warning ? "bg-amber-50 text-amber-700 border border-amber-100" :
+          "bg-red-50 text-red-600 border border-red-100"
+        }`}>
+          <div className="font-medium">{testResult.message}</div>
+          {testResult.detail && <div className="text-xs mt-0.5">{testResult.detail}</div>}
+        </div>
+      )}
       <p className="text-xs text-ink-500">{t.settings.site.cloudHint}</p>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <button className="btn-primary" onClick={save} disabled={saving}>
           {saving ? t.common.saving : t.common.save}
+        </button>
+        <button
+          className="text-sm px-3 py-2 rounded-md border border-ink-200 hover:bg-ink-50 disabled:opacity-50"
+          onClick={testPath}
+          disabled={testing || !path}
+        >
+          {testing ? t.settings.test.testing : "🔍 " + t.settings.test.btn}
         </button>
         {msg && <span className={`text-sm ${msg.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{msg}</span>}
       </div>
@@ -744,3 +790,101 @@ function Field({
     </div>
   );
 }
+
+function HealthCard({ onJump }: { onJump: (tab: Tab) => void }) {
+  const t = useT();
+  const { data, mutate } = useSWR<HealthCheckResponse>("/api/settings/health", api.fetcher, {
+    refreshInterval: 60_000,
+  });
+  if (!data) return null;
+
+  const STATUS_STYLE: Record<string, string> = {
+    ok: "bg-emerald-500",
+    partial: "bg-amber-500",
+    missing: "bg-red-500",
+    optional: "bg-ink-300",
+  };
+  const STATUS_LABEL: Record<string, string> = {
+    ok: "🟢", partial: "🟡", missing: "🔴", optional: "⚪",
+  };
+
+  return (
+    <div className="card card-pad mb-6 bg-gradient-to-br from-ink-50/40 to-white">
+      <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <div className="text-xs font-medium text-ink-500 uppercase tracking-wide">
+            {t.settings.health.title}
+          </div>
+          <div className="text-sm text-ink-700 mt-1">
+            {data.fully_setup ? `✓ ${t.settings.health.ready}` : t.settings.health.partial(data.required_ok, data.required_total)}
+          </div>
+        </div>
+        <button className="text-xs text-ink-500 hover:text-ink-900" onClick={() => mutate()}>↻</button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {data.items.map((it) => (
+          <button
+            key={it.id}
+            onClick={() => it.tab && onJump(it.tab as Tab)}
+            disabled={!it.tab}
+            className={`flex items-start gap-2 p-2 rounded-md border text-left transition ${
+              it.tab ? "hover:border-brand-200 hover:bg-brand-50/30 cursor-pointer" : "cursor-default"
+            } border-ink-200 bg-white`}
+          >
+            <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${STATUS_STYLE[it.status]}`} />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-ink-900">{it.label}</div>
+              <div className="text-xs text-ink-500 truncate">{it.detail}</div>
+            </div>
+            {it.tab && it.status !== "ok" && (
+              <span className="text-xs text-brand-700 shrink-0 mt-1">→</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="text-xs text-ink-500 mt-3 pt-2 border-t border-ink-100">
+        {t.settings.health.legend}
+      </div>
+    </div>
+  );
+}
+
+function TestKeyButton({ provider }: { provider: "anthropic" | "openai" | "google_ads" | "search_console" }) {
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string; detail?: string } | null>(null);
+
+  const run = async () => {
+    setBusy(true);
+    setResult(null);
+    try {
+      const r = await api.testApiKey(provider);
+      setResult(r);
+    } catch (e: any) {
+      setResult({ ok: false, message: t.common.error, detail: e.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-2 mt-1.5">
+      <button
+        onClick={run}
+        disabled={busy}
+        className="text-xs px-2 py-1 rounded border border-ink-200 hover:bg-ink-50 disabled:opacity-50"
+      >
+        {busy ? t.settings.test.testing : "🔍 " + t.settings.test.btn}
+      </button>
+      {result && (
+        <div className={`text-xs flex-1 ${result.ok ? "text-emerald-700" : "text-red-600"}`}>
+          {result.message}
+          {result.detail && <div className="text-ink-500 mt-0.5">{result.detail}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+

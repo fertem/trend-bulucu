@@ -218,3 +218,273 @@ def update_env(body: EnvUpdate):
             else "✓ Anahtarlar hemen aktif — restart gerek yok."
         ),
     }
+
+
+# ─── API Key validation ─────────────────────────────────────────────────────
+
+class TestKeyIn(BaseModel):
+    provider: str  # "anthropic" | "openai" | "google_ads" | "search_console"
+
+
+@router.post("/test-key")
+def test_api_key(body: TestKeyIn):
+    """Test if the configured API key for a provider actually works.
+
+    Returns: {ok: bool, message: str, detail?: str}
+    """
+    provider = body.provider
+    if provider == "anthropic":
+        if not env_settings.anthropic_api_key:
+            return {"ok": False, "message": "Anthropic anahtarı tanımlı değil"}
+        try:
+            from anthropic import Anthropic
+            client = Anthropic(api_key=env_settings.anthropic_api_key)
+            # Minimal probe: 1-token completion
+            client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1,
+                messages=[{"role": "user", "content": "ok"}],
+            )
+            return {"ok": True, "message": "✓ Anthropic Claude erişilebilir"}
+        except Exception as e:
+            msg = str(e)[:200]
+            hint = ""
+            if "401" in msg or "authentication" in msg.lower() or "invalid" in msg.lower():
+                hint = " — Anahtar geçersiz veya iptal edilmiş"
+            elif "credit" in msg.lower() or "quota" in msg.lower() or "billing" in msg.lower():
+                hint = " — Hesap kredi/kota sorunu"
+            return {"ok": False, "message": "Anthropic test başarısız", "detail": msg + hint}
+
+    if provider == "openai":
+        if not env_settings.openai_api_key:
+            return {"ok": False, "message": "OpenAI anahtarı tanımlı değil"}
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=env_settings.openai_api_key)
+            # Minimal probe: list models (1 call, no tokens spent)
+            models = client.models.list()
+            count = sum(1 for _ in models.data[:3])
+            return {"ok": True, "message": f"✓ OpenAI erişilebilir ({count}+ model var)"}
+        except Exception as e:
+            msg = str(e)[:200]
+            hint = ""
+            if "401" in msg or "invalid" in msg.lower() or "authentication" in msg.lower():
+                hint = " — Anahtar geçersiz"
+            elif "quota" in msg.lower() or "billing" in msg.lower():
+                hint = " — Kota/billing sorunu"
+            return {"ok": False, "message": "OpenAI test başarısız", "detail": msg + hint}
+
+    if provider == "google_ads":
+        if not env_settings.has_google_ads:
+            return {"ok": False, "message": "Google Ads .env'de yapılandırılmamış"}
+        try:
+            from .. import google_ads
+            # Token refresh = effective auth check (no quota cost)
+            google_ads._refresh_access_token()
+            return {"ok": True, "message": f"✓ Google Ads OAuth çalışıyor (customer: {env_settings.google_ads_customer_id})"}
+        except Exception as e:
+            msg = str(e)[:200]
+            hint = ""
+            if "invalid_grant" in msg.lower():
+                hint = " — Refresh token süresi dolmuş, OAuth'u yenile"
+            elif "invalid_client" in msg.lower():
+                hint = " — Client ID/Secret hatalı"
+            return {"ok": False, "message": "Google Ads test başarısız", "detail": msg + hint}
+
+    if provider == "search_console":
+        try:
+            from .. import search_console
+            sites = search_console.list_sites()
+            if sites:
+                count = len(sites)
+                return {"ok": True, "message": f"✓ Search Console erişilebilir ({count} site doğrulanmış)"}
+            return {"ok": True, "message": "Search Console erişilebilir ama doğrulanmış site yok"}
+        except Exception as e:
+            msg = str(e)[:200]
+            hint = ""
+            if "credentials" in msg.lower() or "oauth" in msg.lower():
+                hint = " — OAuth credentials.json eksik veya scope yetersiz"
+            return {"ok": False, "message": "Search Console test başarısız", "detail": msg + hint}
+
+    raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+
+
+# ─── Site path validation ─────────────────────────────────────────────────
+
+
+class TestSitePathIn(BaseModel):
+    path: str | None = None  # if not provided, uses currently-saved DB value
+
+
+@router.post("/test-site-path")
+def test_site_path(body: TestSitePathIn, db: Annotated[Session, Depends(get_db)]):
+    """Verify a local site path exists and looks like a Next.js / blog folder."""
+    path_str = (body.path or "").strip()
+    if not path_str:
+        path_str = app_settings.get(db, "site_path") or env_settings.kod_org_path or ""
+
+    # Strip surrounding quotes — common copy-paste artifact
+    path_str = path_str.strip()
+    if (path_str.startswith('"') and path_str.endswith('"')) or (path_str.startswith("'") and path_str.endswith("'")):
+        path_str = path_str[1:-1].strip()
+
+    if not path_str:
+        return {"ok": False, "message": "Site yolu boş — önce bir yol gir"}
+
+    p = Path(path_str)
+    if not p.exists():
+        return {
+            "ok": False,
+            "message": "Bu yol mevcut değil",
+            "detail": f"Filesystem'de bulunamadı: {path_str}",
+        }
+    if not p.is_dir():
+        return {
+            "ok": False,
+            "message": "Yol bir dizin değil (dosya gözüküyor)",
+            "detail": str(p),
+        }
+
+    app_dir = p / "app"
+    blog_dir = p / "app" / "blog"
+    has_app = app_dir.exists() and app_dir.is_dir()
+    has_blog = blog_dir.exists() and blog_dir.is_dir()
+
+    if not has_app:
+        # Hâlâ kullanılabilir olabilir — markdown blog vb. için
+        return {
+            "ok": True,
+            "message": "Yol mevcut ama 'app/' klasörü yok",
+            "detail": "Next.js projesi gibi durmuyor. Markdown blog ise sorun değil; site tarayıcı tüm .md / .mdx dosyalarını arar.",
+            "warning": True,
+        }
+
+    # Count subfolders for a quick estimate
+    try:
+        page_count = sum(1 for d in app_dir.iterdir() if d.is_dir() and not d.name.startswith("(") and not d.name.startswith("_"))
+    except PermissionError:
+        return {"ok": False, "message": "Klasöre erişim izni yok", "detail": str(p)}
+
+    blog_count = 0
+    if has_blog:
+        try:
+            blog_count = sum(1 for d in blog_dir.iterdir() if d.is_dir() and not d.name.startswith("(") and not d.name.startswith("_"))
+        except Exception:
+            pass
+
+    msg = f"✓ Yol geçerli — {page_count} sayfa"
+    if blog_count > 0:
+        msg += f" + {blog_count} blog post"
+    return {"ok": True, "message": msg, "detail": str(p)}
+
+
+# ─── Health check / connection status ───────────────────────────────────────
+
+@router.get("/health")
+def health_check(db: Annotated[Session, Depends(get_db)]):
+    """Settings ana ekranında her entegrasyon için doluluk + durum.
+
+    Test çağrıları YAPMAZ — sadece config var mı diye bakar (hızlı).
+    """
+    from ..models import Keyword, Category, SiteContent, SearchConsoleQuery
+
+    brand_name = app_settings.get(db, "brand_name") or ""
+    brand_desc = app_settings.get(db, "brand_description") or ""
+    site_path = app_settings.get(db, "site_path") or env_settings.kod_org_path or ""
+
+    cat_count = db.query(Category).count()
+    kw_count = db.query(Keyword).filter(Keyword.is_active == True).count()
+    site_indexed = db.query(SiteContent).count()
+    sc_query_count = db.query(SearchConsoleQuery).count()
+
+    items = [
+        {
+            "id": "brand",
+            "label": "Marka bilgileri",
+            "status": "ok" if (brand_name and brand_desc) else "missing",
+            "detail": brand_name or "tanımlı değil",
+            "action_url": "/settings",
+            "tab": "brand",
+        },
+        {
+            "id": "ai",
+            "label": "AI sağlayıcı",
+            "status": (
+                "ok" if (env_settings.anthropic_api_key or env_settings.openai_api_key)
+                else "missing"
+            ),
+            "detail": (
+                "Anthropic + OpenAI" if env_settings.anthropic_api_key and env_settings.openai_api_key
+                else "Anthropic" if env_settings.anthropic_api_key
+                else "OpenAI" if env_settings.openai_api_key
+                else "anahtar yok"
+            ),
+            "action_url": "/settings",
+            "tab": "api",
+        },
+        {
+            "id": "categories",
+            "label": "Kategoriler",
+            "status": "ok" if cat_count >= 3 else ("partial" if cat_count > 0 else "missing"),
+            "detail": f"{cat_count} tanımlı" if cat_count else "yok",
+            "action_url": "/settings",
+            "tab": "categories",
+        },
+        {
+            "id": "keywords",
+            "label": "Takip kelimeleri",
+            "status": "ok" if kw_count >= 5 else ("partial" if kw_count > 0 else "missing"),
+            "detail": f"{kw_count} aktif" if kw_count else "yok",
+            "action_url": "/admin",
+            "tab": None,
+        },
+        {
+            "id": "site_path",
+            "label": "Site yolu",
+            "status": "ok" if site_path else "optional",
+            "detail": site_path[-40:] if site_path else "tanımlı değil (içerik boşluğu için)",
+            "action_url": "/settings",
+            "tab": "site",
+        },
+        {
+            "id": "site_scan",
+            "label": "Site taraması",
+            "status": "ok" if site_indexed > 0 else ("optional" if not site_path else "missing"),
+            "detail": f"{site_indexed} sayfa indexli" if site_indexed else ("site yolu yok" if not site_path else "henüz taranmadı"),
+            "action_url": "/",
+            "tab": None,
+        },
+        {
+            "id": "google_ads",
+            "label": "Google Ads",
+            "status": "ok" if env_settings.has_google_ads else "optional",
+            "detail": env_settings.google_ads_customer_id if env_settings.has_google_ads else "bağlı değil (gerçek arama hacmi için)",
+            "action_url": "/settings",
+            "tab": "api",
+        },
+        {
+            "id": "search_console",
+            "label": "Search Console",
+            "status": "ok" if (env_settings.search_console_site_url and sc_query_count > 0) else (
+                "partial" if env_settings.search_console_site_url else "optional"
+            ),
+            "detail": (
+                f"{sc_query_count} sorgu • {env_settings.search_console_site_url}"
+                if (env_settings.search_console_site_url and sc_query_count > 0)
+                else env_settings.search_console_site_url or "bağlı değil (gerçek SEO performansı için)"
+            ),
+            "action_url": "/settings",
+            "tab": "api",
+        },
+    ]
+
+    required_ok = sum(1 for it in items if it["id"] in {"brand", "ai", "categories", "keywords"} and it["status"] == "ok")
+    optional_ok = sum(1 for it in items if it["status"] == "ok") - required_ok
+
+    return {
+        "items": items,
+        "required_ok": required_ok,
+        "required_total": 4,
+        "optional_ok": optional_ok,
+        "fully_setup": required_ok == 4,
+    }
