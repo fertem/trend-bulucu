@@ -359,6 +359,8 @@ export const en: Dict = {
     progress: (s: number, t: number) => `Collecting… (${s}/${t} keywords)`,
     rateLimited: "❌ Google rate limit (429) — your IP is temporarily blocked.",
     cooldownRemaining: (mins: number) => `Try again in ~${mins} minutes.`,
+    cooldownActive: (mins: number) => `Pytrends cooldown — ${mins} more min before trend data can be fetched (Google IP block).`,
+    cooldownInfo: "Site scan, Search Console and content gaps still refresh — only the Pytrends step is skipped.",
     cooldownTip: "Cause: too many Pytrends requests in a row. Wait a bit, then retry. Increasing REQUEST_DELAY_SECONDS in Settings prevents repeats.",
     partialSuccess: (s: number, t: number) => `${s}/${t} keywords succeeded, partial run.`,
     runFailed: "Refresh failed.",

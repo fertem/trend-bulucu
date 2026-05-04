@@ -494,6 +494,8 @@ export const tr = {
     progress: (s: number, t: number) => `Toplanıyor… (${s}/${t} kelime)`,
     rateLimited: "❌ Google rate limit (429) — IP'niz geçici olarak bloklandı.",
     cooldownRemaining: (mins: number) => `~${mins} dakika sonra tekrar denenebilir.`,
+    cooldownActive: (mins: number) => `Pytrends cooldown — ${mins} dk daha trend verisi çekilemez (Google IP block).`,
+    cooldownInfo: "Site taraması, Search Console ve içerik fırsatları yine güncellenir — sadece Pytrends adımı atlanır.",
     cooldownTip: "Sebep: art arda çok fazla Pytrends isteği. Çözüm: kısa süre bekle, sonra tekrar dene. Ayarlardan REQUEST_DELAY_SECONDS değerini artırarak tekrarını önleyebilirsin.",
     partialSuccess: (s: number, t: number) => `${s}/${t} kelime başarılı, kısmi tamamlandı.`,
     runFailed: "Güncelleme başarısız.",

@@ -117,18 +117,16 @@ export function FreshnessBar() {
             </div>
           )}
           {cooldownActive && (
-            <div className="mt-2 p-2.5 rounded-md bg-red-50 border border-red-100 text-xs">
-              <div className="font-medium text-red-700">{t.freshness.rateLimited}</div>
-              <div className="text-red-600 mt-0.5">{t.freshness.cooldownRemaining(cooldownMins)}</div>
-              <div className="text-ink-700 mt-1">{t.freshness.cooldownTip}</div>
+            <div className="mt-2 p-2.5 rounded-md bg-amber-50 border border-amber-100 text-xs">
+              <div className="font-medium text-amber-800">⏳ {t.freshness.cooldownActive(cooldownMins)}</div>
+              <div className="text-ink-700 mt-1">{t.freshness.cooldownInfo}</div>
             </div>
           )}
         </div>
         <button
           className="btn-primary text-xs whitespace-nowrap"
           onClick={refreshAll}
-          disabled={refreshing || cooldownActive}
-          title={cooldownActive ? t.freshness.cooldownRemaining(cooldownMins) : undefined}
+          disabled={refreshing}
         >
           {refreshing ? (
             <span className="flex items-center gap-1.5">
@@ -138,8 +136,6 @@ export function FreshnessBar() {
               </svg>
               {t.freshness.updating}
             </span>
-          ) : cooldownActive ? (
-            `~${cooldownMins} dk`
           ) : (
             t.freshness.refreshAll
           )}
