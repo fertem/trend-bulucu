@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { api, DigestResponse, SystemFreshness } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export function AIDigest({ hasAi }: { hasAi: boolean }) {
+  const t = useT();
   const { data: freshness } = useSWR<SystemFreshness>("/api/system/freshness", api.fetcher);
   const [data, setData] = useState<DigestResponse | null>(null);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function AIDigest({ hasAi }: { hasAi: boolean }) {
       setGeneratedAt(now);
       try { localStorage.setItem("digest-cache", JSON.stringify({ at: Date.now(), iso: now, data: r })); } catch {}
     } catch (e: any) {
-      setError(e.message || "AI cevabı alınamadı");
+      setError(e.message || t.aiDigest.error);
     } finally {
       setLoading(false);
     }
@@ -47,39 +49,36 @@ export function AIDigest({ hasAi }: { hasAi: boolean }) {
     <div className="card card-pad mb-6 border-brand-100 bg-gradient-to-br from-brand-50/60 to-white">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <div className="text-xs font-medium text-brand-700 uppercase tracking-wide">AI Haftalık Özet</div>
+          <div className="text-xs font-medium text-brand-700 uppercase tracking-wide">{t.aiDigest.overline}</div>
           <h2 className="text-lg font-semibold text-ink-900 mt-1">
-            {data?.headline || "Bu haftanın trendleri tek bir bakışta"}
+            {data?.headline || t.aiDigest.defaultHeadline}
           </h2>
           <div className="text-xs text-ink-500 mt-0.5">
-            {generatedAt ? `AI özeti: ${relativeTime(generatedAt)}` : "AI özeti henüz üretilmedi"}
+            {generatedAt ? `${t.aiDigest.aiSummary}: ${relativeTime(generatedAt)}` : t.aiDigest.notGenerated}
             {freshness?.trends_last_collected && (
-              <span> · trend verisi: {relativeTime(freshness.trends_last_collected)}</span>
+              <span> · {t.aiDigest.trendData}: {relativeTime(freshness.trends_last_collected)}</span>
             )}
             {freshness?.gsc_last_synced && (
-              <span> · SC: {relativeTime(freshness.gsc_last_synced)}</span>
+              <span> · {t.aiDigest.sc}: {relativeTime(freshness.gsc_last_synced)}</span>
             )}
           </div>
         </div>
         <button className="btn-ghost text-xs whitespace-nowrap" onClick={generate} disabled={loading}>
-          {loading ? "Hazırlanıyor…" : data ? "Yenile" : "Üret"}
+          {loading ? t.aiDigest.preparing : data ? t.aiDigest.refresh : t.aiDigest.generate}
         </button>
       </div>
 
       {error && <div className="text-sm text-red-600 mb-3">{error}</div>}
 
       {!data && !loading && !error && (
-        <p className="text-sm text-ink-500">
-          AI tüm haftalık veriyi okuyup öne çıkanları, somut aksiyonları ve dikkat etmeniz gerekenleri çıkarır.
-          "Üret" butonuna basın.
-        </p>
+        <p className="text-sm text-ink-500">{t.aiDigest.intro}</p>
       )}
 
       {data && (data.highlights?.length > 0 || data.actions?.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
           {data.highlights?.length > 0 && (
             <div>
-              <div className="label mb-2">Öne Çıkanlar</div>
+              <div className="label mb-2">{t.aiDigest.highlights}</div>
               <ul className="space-y-2">
                 {data.highlights.map((h, i) => (
                   <li key={i} className="text-sm">
@@ -94,7 +93,7 @@ export function AIDigest({ hasAi }: { hasAi: boolean }) {
 
           {data.actions?.length > 0 && (
             <div>
-              <div className="label mb-2">Bu Hafta Yap</div>
+              <div className="label mb-2">{t.aiDigest.thisWeek}</div>
               <ul className="space-y-2">
                 {data.actions.map((a, i) => (
                   <li key={i} className="text-sm">
@@ -111,7 +110,7 @@ export function AIDigest({ hasAi }: { hasAi: boolean }) {
 
       {data?.watch_out && (
         <div className="mt-4 pt-4 border-t border-brand-100/60">
-          <div className="label mb-1">Dikkat / Fırsat</div>
+          <div className="label mb-1">{t.aiDigest.watchOut}</div>
           <p className="text-sm text-ink-700">{data.watch_out}</p>
         </div>
       )}

@@ -2,17 +2,19 @@
 
 import { useState } from "react";
 import { api, LongTailVariant } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
-const TYPE_LABELS: Record<string, { label: string; cls: string }> = {
-  soru: { label: "Soru", cls: "bg-emerald-50 text-emerald-700 border-emerald-100" },
-  yaş: { label: "Yaş", cls: "bg-blue-50 text-blue-700 border-blue-100" },
-  karşılaştırma: { label: "Karşılaştırma", cls: "bg-purple-50 text-purple-700 border-purple-100" },
-  yıl: { label: "Yıl", cls: "bg-amber-50 text-amber-700 border-amber-100" },
-  modifier: { label: "Modifier", cls: "bg-pink-50 text-pink-700 border-pink-100" },
-  diğer: { label: "Diğer", cls: "bg-ink-100 text-ink-500 border-ink-200" },
+const TYPE_CLS: Record<string, string> = {
+  soru: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  yaş: "bg-blue-50 text-blue-700 border-blue-100",
+  karşılaştırma: "bg-purple-50 text-purple-700 border-purple-100",
+  yıl: "bg-amber-50 text-amber-700 border-amber-100",
+  modifier: "bg-pink-50 text-pink-700 border-pink-100",
+  diğer: "bg-ink-100 text-ink-500 border-ink-200",
 };
 
 export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
+  const t = useT();
   const [seed, setSeed] = useState("");
   const [items, setItems] = useState<LongTailVariant[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -24,7 +26,7 @@ export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
   if (!hasAi) {
     return (
       <section className="card card-pad mb-6 text-sm text-ink-500">
-        Long-tail keşfi için AI gerekli (.env'de OPENAI_API_KEY veya ANTHROPIC_API_KEY).
+        {t.longTail.aiKeyRequired}
       </section>
     );
   }
@@ -39,7 +41,7 @@ export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
       setItems(r.variants);
       setSelected(new Set());
     } catch (e: any) {
-      setError(e.message || "AI cevabı alınamadı");
+      setError(e.message || t.longTail.error);
     } finally {
       setLoading(false);
     }
@@ -58,11 +60,11 @@ export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
     setMsg(null);
     try {
       const r = await api.addKeywords([...selected]);
-      setMsg(`${r.added.length} kelime takip listesine eklendi.`);
+      setMsg(t.longTail.addResult(r.added.length));
       setItems((prev) => prev?.filter((v) => !r.added.includes(v.keyword)) ?? null);
       setSelected(new Set());
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setAdding(false);
     }
@@ -70,32 +72,30 @@ export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
 
   const grouped: Record<string, LongTailVariant[]> = {};
   items?.forEach((v) => {
-    const t = v.type || "diğer";
-    grouped[t] = grouped[t] || [];
-    grouped[t].push(v);
+    const tp = v.type || "diğer";
+    grouped[tp] = grouped[tp] || [];
+    grouped[tp].push(v);
   });
 
   return (
     <section className="card card-pad mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50/40 to-white">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div>
-          <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide">AI Long-tail Keşfi</div>
-          <h2 className="font-semibold text-ink-900 mt-1">Bir tohum kelimeden 15+ varyant üret</h2>
-          <p className="text-xs text-ink-500 mt-1">
-            Soru / yaş / karşılaştırma / yıl / modifier kategorilerinde uzun-kuyruk varyantlar.
-          </p>
+          <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide">{t.longTail.overline}</div>
+          <h2 className="font-semibold text-ink-900 mt-1">{t.longTail.title}</h2>
+          <p className="text-xs text-ink-500 mt-1">{t.longTail.description}</p>
         </div>
       </div>
 
       <form onSubmit={(e) => { e.preventDefault(); generate(); }} className="flex gap-2 mb-3">
         <input
           className="input flex-1"
-          placeholder="Tohum kelime — örn. scratch, çocuk kodlama, yapay zeka"
+          placeholder={t.longTail.seedPlaceholder}
           value={seed}
           onChange={(e) => setSeed(e.target.value)}
         />
         <button className="btn-primary" disabled={loading || !seed.trim()}>
-          {loading ? "Üretiyor…" : "Üret"}
+          {loading ? t.longTail.generating : t.longTail.generate}
         </button>
       </form>
 
@@ -105,10 +105,10 @@ export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
       {items && items.length > 0 && (
         <>
           <div className="flex justify-between items-center mb-3">
-            <div className="text-sm text-ink-700">{items.length} varyant — eklemek istediklerini seç:</div>
+            <div className="text-sm text-ink-700">{t.longTail.selectHint(items.length)}</div>
             {selected.size > 0 && (
               <button className="btn-primary text-xs" onClick={addSelected} disabled={adding}>
-                {adding ? "Ekleniyor…" : `Seçilenleri ekle (${selected.size})`}
+                {adding ? t.longTail.adding : t.longTail.addSelected(selected.size)}
               </button>
             )}
           </div>
@@ -117,8 +117,8 @@ export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
             {Object.entries(grouped).map(([type, variants]) => (
               <div key={type}>
                 <div className="label mb-1.5">
-                  <span className={`badge border ${TYPE_LABELS[type]?.cls || TYPE_LABELS.diğer.cls}`}>
-                    {TYPE_LABELS[type]?.label || type}
+                  <span className={`badge border ${TYPE_CLS[type] || TYPE_CLS.diğer}`}>
+                    {(t.longTail.types as Record<string, string>)[type] || type}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">

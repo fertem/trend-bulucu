@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { api, SystemFreshness } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 type Source = {
   label: string;
@@ -12,6 +13,7 @@ type Source = {
 };
 
 export function FreshnessBar() {
+  const t = useT();
   const { data, mutate } = useSWR<SystemFreshness>("/api/system/freshness", api.fetcher, {
     refreshInterval: 30_000,
   });
@@ -30,32 +32,31 @@ export function FreshnessBar() {
   // 12 dakika sonra otomatik kapat (max sürec)
   useEffect(() => {
     if (!startedAt) return;
-    const t = setTimeout(() => {
+    const tm = setTimeout(() => {
       setRefreshing(false);
-      setMsg("Güncelleme tamamlandı (veriler yenilendi).");
+      setMsg(t.freshness.timeout);
     }, 12 * 60 * 1000);
-    return () => clearTimeout(t);
-  }, [startedAt]);
+    return () => clearTimeout(tm);
+  }, [startedAt, t.freshness.timeout]);
 
-  // Eğer trends_last_collected güncellendi → güncelleme bitti
   useEffect(() => {
     if (!refreshing || !data?.trends_last_collected || !startedAt) return;
     const collectedAt = new Date(data.trends_last_collected).getTime();
     if (collectedAt > startedAt) {
       setRefreshing(false);
-      setMsg("✓ Tüm veri kaynakları güncellendi.");
+      setMsg(t.freshness.done);
     }
-  }, [data?.trends_last_collected, refreshing, startedAt]);
+  }, [data?.trends_last_collected, refreshing, startedAt, t.freshness.done]);
 
   const refreshAll = async () => {
     setRefreshing(true);
     setStartedAt(Date.now());
-    setMsg("Güncelleme başlatıldı (Pytrends + skor + GSC + içerik fırsatları). ~3-10 dakika sürer.");
+    setMsg(t.freshness.started);
     try {
       await api.systemRefreshAll();
     } catch (e: any) {
       setRefreshing(false);
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     }
   };
 
@@ -63,32 +64,32 @@ export function FreshnessBar() {
 
   const sources: Source[] = [
     {
-      label: "Trend verisi",
+      label: t.freshness.sources.trends,
       value: data.trends_last_collected,
       meta: data.trends_last_collected
-        ? `${data.trends_succeeded}/${data.trends_attempted} başarı`
+        ? t.freshness.successCount(data.trends_succeeded, data.trends_attempted)
         : undefined,
     },
     {
-      label: "5y Tarihsel",
+      label: t.freshness.sources.historical,
       value: data.historical_last_fetched,
-      meta: data.historical_succeeded ? `${data.historical_succeeded} kelime` : undefined,
+      meta: data.historical_succeeded ? t.freshness.keywordsCount(data.historical_succeeded) : undefined,
     },
     {
-      label: "Site taraması",
+      label: t.freshness.sources.site,
       value: data.site_last_scanned,
     },
     {
-      label: "Search Console",
+      label: t.freshness.sources.gsc,
       value: data.gsc_last_synced,
-      meta: data.gsc_imported_rows ? `${data.gsc_imported_rows} sorgu` : undefined,
+      meta: data.gsc_imported_rows ? t.freshness.queriesCount(data.gsc_imported_rows) : undefined,
     },
     {
-      label: "Ads hacmi",
+      label: t.freshness.sources.ads,
       value: data.ads_volumes_last_fetched,
     },
     {
-      label: "İçerik fırsatları",
+      label: t.freshness.sources.gaps,
       value: data.content_gaps_last_refresh,
     },
   ];
@@ -98,7 +99,7 @@ export function FreshnessBar() {
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div>
           <div className="text-xs font-medium text-ink-500 uppercase tracking-wide">
-            Veri Tazelik Durumu
+            {t.freshness.overline}
           </div>
           {msg && (
             <div className={`text-xs mt-1 ${msg.startsWith("✓") ? "text-emerald-700" : msg.startsWith("Hata") ? "text-red-600" : "text-ink-700"}`}>
@@ -117,10 +118,10 @@ export function FreshnessBar() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Güncelleniyor…
+              {t.freshness.updating}
             </span>
           ) : (
-            "Tümünü Güncelle"
+            t.freshness.refreshAll
           )}
         </button>
       </div>

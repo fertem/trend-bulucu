@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { api } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 type DeepAnalysis = {
   executive_summary: string;
@@ -23,6 +23,7 @@ type ContentBrief = {
 };
 
 export function AIDeepAnalysis({ keyword }: { keyword: string }) {
+  const t = useT();
   const [tab, setTab] = useState<"deep" | "brief">("deep");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,18 +39,18 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("trend-bulucu-token")}` },
           body: JSON.stringify({ keyword }),
-        }).then((r) => { if (!r.ok) throw new Error("API hatası"); return r.json(); });
+        }).then((r) => { if (!r.ok) throw new Error(t.common.error); return r.json(); });
         setDeep(r);
       } else {
         const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/ai/content-brief`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("trend-bulucu-token")}` },
           body: JSON.stringify({ keyword }),
-        }).then((r) => { if (!r.ok) throw new Error("API hatası"); return r.json(); });
+        }).then((r) => { if (!r.ok) throw new Error(t.common.error); return r.json(); });
         setBrief(r);
       }
     } catch (e: any) {
-      setError(e.message || "AI cevabı alınamadı");
+      setError(e.message || t.aiDeep.error);
     } finally {
       setBusy(false);
     }
@@ -59,7 +60,7 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
     <div className="card card-pad bg-gradient-to-br from-brand-50/40 to-white border-brand-100">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div>
-          <div className="text-xs font-medium text-brand-700 uppercase tracking-wide">AI Derin Analiz</div>
+          <div className="text-xs font-medium text-brand-700 uppercase tracking-wide">{t.aiDeep.overline}</div>
           <h3 className="font-semibold text-ink-900 mt-1">"{keyword}"</h3>
         </div>
         <div className="flex items-center gap-2">
@@ -68,17 +69,17 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
               onClick={() => setTab("deep")}
               className={`px-3 py-1 rounded ${tab === "deep" ? "bg-brand-600 text-white" : "text-ink-700 hover:bg-ink-50"}`}
             >
-              Derin Analiz
+              {t.aiDeep.tabDeep}
             </button>
             <button
               onClick={() => setTab("brief")}
               className={`px-3 py-1 rounded ${tab === "brief" ? "bg-brand-600 text-white" : "text-ink-700 hover:bg-ink-50"}`}
             >
-              İçerik Brief'i
+              {t.aiDeep.tabBrief}
             </button>
           </div>
           <button className="btn-primary text-xs" onClick={generate} disabled={busy}>
-            {busy ? "Hazırlıyor…" : "Üret"}
+            {busy ? t.aiDeep.preparing : t.aiDeep.generate}
           </button>
         </div>
       </div>
@@ -88,19 +89,19 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
       {tab === "deep" && (
         <>
           {!deep && !busy && !error && (
-            <p className="text-sm text-ink-500">5 yıllık veri + son hareket + mevsimsellik üzerinden tek tıkla 5 bölümlü rapor üret.</p>
+            <p className="text-sm text-ink-500">{t.aiDeep.deepIntro}</p>
           )}
           {deep && (
             <div className="space-y-4 text-sm">
               <div className="font-medium text-ink-900 text-base border-l-4 border-brand-600 pl-3 py-1">
                 {deep.executive_summary}
               </div>
-              <Section label="Tarihsel Patern" body={deep.historical_pattern} />
-              <Section label="Şu Anki Durum" body={deep.current_state} />
-              <Section label="Önümüzdeki 3 Ay" body={deep.next_3_months} />
+              <Section label={t.aiDeep.historicalPattern} body={deep.historical_pattern} />
+              <Section label={t.aiDeep.currentState} body={deep.current_state} />
+              <Section label={t.aiDeep.next3Months} body={deep.next_3_months} />
               {deep.recommendations && deep.recommendations.length > 0 && (
                 <div>
-                  <div className="label mb-2">Önerilen Aksiyonlar</div>
+                  <div className="label mb-2">{t.aiDeep.recommendedActions}</div>
                   <div className="space-y-2">
                     {deep.recommendations.map((r, i) => (
                       <div key={i} className="border-l-2 border-brand-200 pl-3">
@@ -116,7 +117,7 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
               )}
               {deep.risk_or_opportunity && (
                 <div className="p-3 rounded-md bg-amber-50 border border-amber-100 text-sm">
-                  <div className="label mb-1">Risk / Fırsat</div>
+                  <div className="label mb-1">{t.aiDeep.riskOrOpportunity}</div>
                   <div className="text-ink-700">{deep.risk_or_opportunity}</div>
                 </div>
               )}
@@ -128,29 +129,29 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
       {tab === "brief" && (
         <>
           {!brief && !busy && !error && (
-            <p className="text-sm text-ink-500">Bu kelime üzerine blog yazısı + Instagram + Reels için tam çekirdek brief.</p>
+            <p className="text-sm text-ink-500">{t.aiDeep.briefIntro}</p>
           )}
           {brief && (
             <div className="space-y-4 text-sm">
               {brief.title_options && brief.title_options.length > 0 && (
                 <div>
-                  <div className="label mb-2">Başlık Önerileri</div>
+                  <div className="label mb-2">{t.aiDeep.titleOptions}</div>
                   <ul className="space-y-1">
-                    {brief.title_options.map((t, i) => (
-                      <li key={i} className="text-ink-900">• {t}</li>
+                    {brief.title_options.map((title, i) => (
+                      <li key={i} className="text-ink-900">• {title}</li>
                     ))}
                   </ul>
                 </div>
               )}
               {brief.target_audience && (
-                <Section label="Hedef Kitle" body={brief.target_audience} />
+                <Section label={t.aiDeep.audience} body={brief.target_audience} />
               )}
               {brief.search_intent && (
-                <Section label="Arama Niyeti" body={brief.search_intent} />
+                <Section label={t.aiDeep.searchIntent} body={brief.search_intent} />
               )}
               {brief.outline && brief.outline.length > 0 && (
                 <div>
-                  <div className="label mb-2">Outline</div>
+                  <div className="label mb-2">{t.aiDeep.outline}</div>
                   <div className="space-y-3">
                     {brief.outline.map((o, i) => (
                       <div key={i} className="border-l-2 border-brand-200 pl-3">
@@ -172,10 +173,10 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
               )}
               {brief.key_takeaways && brief.key_takeaways.length > 0 && (
                 <div>
-                  <div className="label mb-2">Okuyucu Çıkarımları</div>
+                  <div className="label mb-2">{t.aiDeep.takeaways}</div>
                   <ul className="space-y-1 text-ink-700">
-                    {brief.key_takeaways.map((t, i) => (
-                      <li key={i}>✓ {t}</li>
+                    {brief.key_takeaways.map((k, i) => (
+                      <li key={i}>✓ {k}</li>
                     ))}
                   </ul>
                 </div>
@@ -198,7 +199,7 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
               )}
               {brief.secondary_keywords && brief.secondary_keywords.length > 0 && (
                 <div>
-                  <div className="label mb-2">Yan SEO Kelimeleri</div>
+                  <div className="label mb-2">{t.aiDeep.secondaryKw}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {brief.secondary_keywords.map((k, i) => (
                       <span key={i} className="badge badge-cat">{k}</span>

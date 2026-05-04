@@ -3,13 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { api, CorrelatedKeyword, SimilarKeyword } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 const TYPE_COLORS: Record<string, string> = {
   "eş anlamlı": "bg-blue-50 text-blue-700 border-blue-100",
+  "synonym": "bg-blue-50 text-blue-700 border-blue-100",
   "yan kavram": "bg-purple-50 text-purple-700 border-purple-100",
+  "related": "bg-purple-50 text-purple-700 border-purple-100",
   "soru formu": "bg-emerald-50 text-emerald-700 border-emerald-100",
+  "question form": "bg-emerald-50 text-emerald-700 border-emerald-100",
   "uzun varyant": "bg-amber-50 text-amber-700 border-amber-100",
+  "long variant": "bg-amber-50 text-amber-700 border-amber-100",
   "farklı dil": "bg-pink-50 text-pink-700 border-pink-100",
+  "other language": "bg-pink-50 text-pink-700 border-pink-100",
   default: "bg-ink-100 text-ink-700 border-ink-200",
 };
 
@@ -18,6 +24,7 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
   hasAi: boolean;
   correlated?: CorrelatedKeyword[];
 }) {
+  const t = useT();
   const [items, setItems] = useState<SimilarKeyword[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +37,7 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
       const r = await api.similarKeywords(keyword);
       setItems(r.similar_keywords);
     } catch (e: any) {
-      setError(e.message || "AI cevabı alınamadı");
+      setError(e.message || t.similarKw.error);
     } finally {
       setLoading(false);
     }
@@ -40,32 +47,30 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
     setAdding(kw);
     try {
       await api.researchKeyword(kw, addToTrack);
-      // Move to keyword in URL
       window.location.href = `/explorer?q=${encodeURIComponent(kw)}`;
     } catch (e: any) {
-      alert(`Hata: ${e.message}`);
+      alert(`${t.common.error}: ${e.message}`);
       setAdding(null);
     }
   };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* AI Similar */}
       {hasAi && (
         <div className="card card-pad bg-gradient-to-br from-purple-50/40 to-white border-purple-100">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <div className="text-xs font-medium text-purple-700 uppercase tracking-wide">AI · Benzer Kelimeler</div>
-              <h3 className="font-medium text-ink-900 mt-1">Bu kelimeye yakın aramalar</h3>
+              <div className="text-xs font-medium text-purple-700 uppercase tracking-wide">{t.similarKw.aiOverline}</div>
+              <h3 className="font-medium text-ink-900 mt-1">{t.similarKw.aiTitle}</h3>
             </div>
             <button className="btn-ghost text-xs" onClick={generate} disabled={loading}>
-              {loading ? "Düşünüyor…" : items ? "Yenile" : "Üret"}
+              {loading ? t.similarKw.thinking : items ? t.similarKw.refresh : t.similarKw.generate}
             </button>
           </div>
 
           {error && <div className="text-sm text-red-600 mb-2">{error}</div>}
           {!items && !loading && !error && (
-            <p className="text-sm text-ink-500">10 semantik benzer kelime üretir, tek tıkla araştırabilirsin.</p>
+            <p className="text-sm text-ink-500">{t.similarKw.intro}</p>
           )}
 
           {items && items.length > 0 && (
@@ -87,17 +92,17 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
                         className="text-xs px-2 py-1 rounded bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50"
                         onClick={() => research(s.keyword, false)}
                         disabled={adding === s.keyword}
-                        title="5y veri çek + analiz"
+                        title={t.similarKw.researchTitle}
                       >
-                        {adding === s.keyword ? "..." : "Araştır"}
+                        {adding === s.keyword ? "..." : t.similarKw.research}
                       </button>
                       <button
                         className="text-xs px-2 py-1 rounded border border-ink-200 hover:bg-ink-50 disabled:opacity-50"
                         onClick={() => research(s.keyword, true)}
                         disabled={adding === s.keyword}
-                        title="Takibe al + araştır"
+                        title={t.similarKw.trackTitle}
                       >
-                        + Takip
+                        {t.similarKw.track}
                       </button>
                     </div>
                   </div>
@@ -108,14 +113,13 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
         </div>
       )}
 
-      {/* Pattern Correlation */}
       {correlated && correlated.length > 0 && (
         <div className="card card-pad bg-gradient-to-br from-cyan-50/40 to-white border-cyan-100">
           <div className="flex items-start justify-between mb-3">
             <div>
-              <div className="text-xs font-medium text-cyan-700 uppercase tracking-wide">Patern Eşleşmesi</div>
-              <h3 className="font-medium text-ink-900 mt-1">Aynı trend şeklini gösterenler</h3>
-              <p className="text-xs text-ink-500 mt-1">Pearson korelasyonu — birlikte hareket eden takipteki kelimeler.</p>
+              <div className="text-xs font-medium text-cyan-700 uppercase tracking-wide">{t.similarKw.patternOverline}</div>
+              <h3 className="font-medium text-ink-900 mt-1">{t.similarKw.patternTitle}</h3>
+              <p className="text-xs text-ink-500 mt-1">{t.similarKw.patternHint}</p>
             </div>
           </div>
 
@@ -140,7 +144,7 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
                       {positive ? "↗" : "↘"} {pct}%
                     </div>
                     <div className="text-[10px] text-ink-500">
-                      {positive ? "birlikte yükselir" : "ters hareket"}
+                      {positive ? t.similarKw.movesUp : t.similarKw.movesInverse}
                     </div>
                   </div>
                 </Link>
@@ -152,7 +156,7 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
 
       {(!correlated || correlated.length === 0) && !hasAi && (
         <div className="card card-pad text-sm text-ink-500">
-          Yeterli takip verisi yok (en az 7 gün) veya AI yapılandırılmamış.
+          {t.similarKw.notEnoughData}
         </div>
       )}
     </div>

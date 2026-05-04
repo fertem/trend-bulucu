@@ -11,7 +11,6 @@ type Tab = "brand" | "api" | "categories" | "site" | "system";
 
 export default function SettingsPage() {
   const t = useT();
-  const { lang } = useLang();
   const [tab, setTab] = useState<Tab>("brand");
   const { data, mutate } = useSWR<{ settings: AppSettings; configured: boolean }>("/api/settings", api.fetcher);
   const settings = data?.settings;
@@ -20,8 +19,8 @@ export default function SettingsPage() {
     { key: "brand", label: t.settings.tabs.brand, emoji: "🏷️" },
     { key: "api", label: t.settings.tabs.api, emoji: "🔑" },
     { key: "categories", label: t.settings.tabs.categories, emoji: "📁" },
-    { key: "site", label: lang === "en" ? "Site" : "Site", emoji: "🌐" },
-    { key: "system", label: lang === "en" ? "System" : "Sistem", emoji: "⚙️" },
+    { key: "site", label: t.settings.tabs.site, emoji: "🌐" },
+    { key: "system", label: t.settings.tabs.system, emoji: "⚙️" },
   ];
 
   return (
@@ -32,7 +31,7 @@ export default function SettingsPage() {
         actions={
           !data?.configured ? (
             <Link href="/settings/setup" className="btn-primary">
-              🪄 {lang === "en" ? "Quick Setup Wizard" : "Hızlı Kurulum Sihirbazı"}
+              {t.settings.quickWizard}
             </Link>
           ) : null
         }
@@ -55,7 +54,7 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {!settings && <div className="text-sm text-ink-500">Yükleniyor…</div>}
+      {!settings && <div className="text-sm text-ink-500">{t.common.loading}</div>}
       {settings && tab === "brand" && <BrandTab settings={settings} onSave={() => mutate()} />}
       {settings && tab === "api" && <APITab />}
       {settings && tab === "categories" && <CategoriesTab settings={settings} />}
@@ -66,6 +65,7 @@ export default function SettingsPage() {
 }
 
 function BrandTab({ settings, onSave }: { settings: AppSettings; onSave: () => void }) {
+  const t = useT();
   const [form, setForm] = useState({
     brand_name: settings.brand_name,
     brand_url: settings.brand_url,
@@ -81,10 +81,10 @@ function BrandTab({ settings, onSave }: { settings: AppSettings; onSave: () => v
     setMsg(null);
     try {
       await api.updateSettings(form);
-      setMsg("✓ Marka bilgileri kaydedildi.");
+      setMsg(t.settings.brand.saved);
       onSave();
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -92,33 +92,31 @@ function BrandTab({ settings, onSave }: { settings: AppSettings; onSave: () => v
 
   return (
     <div className="card card-pad max-w-2xl space-y-4">
-      <p className="text-sm text-ink-500">
-        Bu bilgiler AI prompt'larında kullanılır — özetler, içerik önerileri ve analiz sonuçları markanıza özel olur.
-      </p>
-      <Field label="Marka Adı" value={form.brand_name} onChange={(v) => setForm({ ...form, brand_name: v })} placeholder="örn. Şirketim" />
-      <Field label="Site URL'si" value={form.brand_url} onChange={(v) => setForm({ ...form, brand_url: v })} placeholder="https://www.example.com" />
+      <p className="text-sm text-ink-500">{t.settings.brand.hint}</p>
+      <Field label={t.settings.brand.name} value={form.brand_name} onChange={(v) => setForm({ ...form, brand_name: v })} placeholder={t.settings.brand.namePh} />
+      <Field label={t.settings.brand.url} value={form.brand_url} onChange={(v) => setForm({ ...form, brand_url: v })} placeholder={t.settings.brand.urlPh} />
       <Field
-        label="Marka Açıklaması"
+        label={t.settings.brand.description}
         value={form.brand_description}
         onChange={(v) => setForm({ ...form, brand_description: v })}
-        placeholder="örn. Çocuklar için online kodlama eğitimi platformu"
+        placeholder={t.settings.brand.descriptionPh}
         textarea
       />
       <Field
-        label="Hedef Kitle"
+        label={t.settings.brand.audience}
         value={form.target_audience}
         onChange={(v) => setForm({ ...form, target_audience: v })}
-        placeholder="örn. Türkiye'de 6-14 yaş çocuğu olan anneler"
+        placeholder={t.settings.brand.audiencePh}
       />
       <Field
-        label="Sektör"
+        label={t.settings.brand.industry}
         value={form.industry}
         onChange={(v) => setForm({ ...form, industry: v })}
-        placeholder="örn. eğitim, e-ticaret, SaaS"
+        placeholder={t.settings.brand.industryPh}
       />
       <div className="flex items-center gap-3">
         <button className="btn-primary" onClick={save} disabled={saving}>
-          {saving ? "Kaydediliyor…" : "Kaydet"}
+          {saving ? t.common.saving : t.common.save}
         </button>
         {msg && <span className={`text-sm ${msg.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{msg}</span>}
       </div>
@@ -127,21 +125,22 @@ function BrandTab({ settings, onSave }: { settings: AppSettings; onSave: () => v
 }
 
 function APITab() {
+  const t = useT();
   const { data, mutate } = useSWR<{ items: Record<string, EnvItem> }>("/api/settings/env", api.fetcher);
   const [updates, setUpdates] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  if (!data) return <div className="text-sm text-ink-500">Yükleniyor…</div>;
+  if (!data) return <div className="text-sm text-ink-500">{t.common.loading}</div>;
 
   const groups: { title: string; keys: string[]; hint?: string }[] = [
     {
-      title: "AI Sağlayıcı (en az biri)",
+      title: t.settings.api.groups.ai,
       keys: ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AI_PROVIDER"],
-      hint: "Anthropic anahtarın varsa öncelikli olur. AI_PROVIDER: 'anthropic' veya 'openai'.",
+      hint: t.settings.api.groups.aiHint,
     },
     {
-      title: "Google Ads (Keyword Planner — opsiyonel)",
+      title: t.settings.api.groups.ads,
       keys: [
         "GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET",
         "GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CUSTOMER_ID",
@@ -149,19 +148,19 @@ function APITab() {
       ],
     },
     {
-      title: "Search Console (opsiyonel — gerçek pozisyon/CTR)",
+      title: t.settings.api.groups.sc,
       keys: ["SEARCH_CONSOLE_SITE_URL"],
     },
     {
-      title: "Pytrends",
+      title: t.settings.api.groups.pytrends,
       keys: ["PYTRENDS_GEO", "PYTRENDS_HL", "PYTRENDS_TIMEFRAME", "REQUEST_DELAY_SECONDS", "MAX_RETRIES"],
     },
     {
-      title: "Zamanlama",
+      title: t.settings.api.groups.scheduler,
       keys: ["COLLECT_HOUR", "COLLECT_MINUTE", "TIMEZONE"],
     },
     {
-      title: "Auth (admin)",
+      title: t.settings.api.groups.auth,
       keys: ["ADMIN_PASSWORD", "JWT_SECRET"],
     },
   ];
@@ -173,11 +172,11 @@ function APITab() {
     try {
       const r: any = await api.updateEnv(updates);
       const reloadIcon = r.reloaded ? "✓" : "⚠";
-      setMsg(`${reloadIcon} ${r.written.length} alan güncellendi. ${r.note || ""}`);
+      setMsg(`${reloadIcon} ${r.written.length} ${r.note || ""}`);
       setUpdates({});
       mutate();
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -186,9 +185,9 @@ function APITab() {
   return (
     <div className="space-y-6">
       <div className="card card-pad bg-emerald-50/40 border-emerald-100 text-sm text-emerald-900">
-        ✨ <strong>Otomatik aktif:</strong> API anahtarları <code>.env</code>'ye yazılır ve <strong>hemen</strong> kullanılmaya başlar — backend'i yeniden başlatmana gerek yok.
+        ✨ <strong>{t.settings.api.autoActive}</strong> {t.settings.api.autoActiveText}
         <br />
-        <span className="text-xs text-emerald-700">İstisna: Zamanlayıcı ayarları (COLLECT_HOUR/MINUTE/TIMEZONE) için restart gerekir.</span>
+        <span className="text-xs text-emerald-700">{t.settings.api.restartHint}</span>
       </div>
 
       {groups.map((g) => (
@@ -215,7 +214,7 @@ function APITab() {
 
       <div className="flex items-center gap-3 max-w-3xl">
         <button className="btn-primary" onClick={save} disabled={saving || Object.keys(updates).length === 0}>
-          {saving ? "Yazılıyor…" : `${Object.keys(updates).length} değişikliği kaydet`}
+          {saving ? t.settings.api.writing : t.settings.api.saveCount(Object.keys(updates).length)}
         </button>
         {msg && <span className={`text-sm ${msg.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{msg}</span>}
       </div>
@@ -228,7 +227,8 @@ function EnvField({
 }: {
   envKey: string; current: EnvItem; newValue?: string; onChange: (v: string) => void;
 }) {
-  const placeholder = current.is_set ? current.value : "(boş)";
+  const t = useT();
+  const placeholder = current.is_set ? current.value : t.settings.api.empty;
   return (
     <div>
       <label className="label block mb-1">{envKey}</label>
@@ -241,7 +241,7 @@ function EnvField({
       />
       {current.is_set && newValue === undefined && (
         <div className="text-xs text-ink-500 mt-0.5">
-          Mevcut: <span className="font-mono">{current.value}</span> — değiştirmek için yeni değer gir
+          {t.settings.api.currentValue}: <span className="font-mono">{current.value}</span> — {t.settings.api.changeHint}
         </div>
       )}
     </div>
@@ -249,6 +249,13 @@ function EnvField({
 }
 
 function CategoriesTab({ settings }: { settings: AppSettings }) {
+  const t = useT();
+  const TPL_LABELS: Record<string, string> = {
+    education: t.settings.categories.tplEducation,
+    ecommerce: t.settings.categories.tplEcommerce,
+    saas: t.settings.categories.tplSaas,
+    content: t.settings.categories.tplContent,
+  };
   const { data: cats, mutate } = useSWR<CategoryItem[]>("/api/settings/categories", api.fetcher);
   const [newCat, setNewCat] = useState({ name: "", triggers: "" });
   const [busy, setBusy] = useState(false);
@@ -262,14 +269,14 @@ function CategoriesTab({ settings }: { settings: AppSettings }) {
       setNewCat({ name: "", triggers: "" });
       mutate();
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setBusy(false);
     }
   };
 
   const remove = async (id: number) => {
-    if (!confirm("Kategori silinsin mi?")) return;
+    if (!confirm(t.settings.categories.confirmDelete)) return;
     await api.removeCat(id);
     mutate();
   };
@@ -278,10 +285,10 @@ function CategoriesTab({ settings }: { settings: AppSettings }) {
     setBusy(true);
     try {
       const r = await api.loadCatTemplate(template);
-      setMsg(`✓ ${r.added} kategori eklendi (${template} şablonu)`);
+      setMsg(t.settings.categories.tplAdded(r.added, TPL_LABELS[template] || template));
       mutate();
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setBusy(false);
     }
@@ -289,11 +296,11 @@ function CategoriesTab({ settings }: { settings: AppSettings }) {
 
   const askAI = async () => {
     if (!settings.brand_name) {
-      setMsg("Önce 'Marka' sekmesinden marka bilgilerini doldurun.");
+      setMsg(t.settings.categories.brandRequired);
       return;
     }
     setBusy(true);
-    setMsg("AI önerileri hazırlıyor…");
+    setMsg(t.settings.categories.aiPreparing);
     try {
       const r = await api.aiSuggestCategories(settings.brand_name, settings.brand_description);
       let added = 0;
@@ -301,10 +308,10 @@ function CategoriesTab({ settings }: { settings: AppSettings }) {
         await api.addCat(c.name, c.triggers);
         added++;
       }
-      setMsg(`✓ AI ${added} kategori önerdi ve eklendi.`);
+      setMsg(t.settings.categories.aiAdded(added));
       mutate();
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setBusy(false);
     }
@@ -313,47 +320,47 @@ function CategoriesTab({ settings }: { settings: AppSettings }) {
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="card card-pad">
-        <h3 className="font-medium text-ink-900 mb-2">Hızlı Şablon</h3>
-        <p className="text-xs text-ink-500 mb-3">Sektörünüze uygun hazır kategori paketini yükleyin (mevcutları silmez):</p>
+        <h3 className="font-medium text-ink-900 mb-2">{t.settings.categories.template}</h3>
+        <p className="text-xs text-ink-500 mb-3">{t.settings.categories.templateHint}</p>
         <div className="flex gap-2 flex-wrap">
-          {["education", "ecommerce", "saas", "content"].map((t) => (
-            <button key={t} className="btn-ghost text-xs" onClick={() => loadTemplate(t)} disabled={busy}>
-              {t === "education" ? "Eğitim" : t === "ecommerce" ? "E-ticaret" : t === "saas" ? "SaaS" : "İçerik"}
+          {["education", "ecommerce", "saas", "content"].map((tpl) => (
+            <button key={tpl} className="btn-ghost text-xs" onClick={() => loadTemplate(tpl)} disabled={busy}>
+              {TPL_LABELS[tpl]}
             </button>
           ))}
           <button className="btn-primary text-xs" onClick={askAI} disabled={busy || !settings.brand_name}>
-            🪄 AI'dan Marka Bazlı Öner
+            {t.settings.categories.aiSuggest}
           </button>
         </div>
         {msg && <div className={`text-sm mt-3 ${msg.startsWith("✓") ? "text-emerald-700" : "text-ink-700"}`}>{msg}</div>}
       </div>
 
       <div className="card card-pad">
-        <h3 className="font-medium text-ink-900 mb-3">Yeni Kategori Ekle</h3>
+        <h3 className="font-medium text-ink-900 mb-3">{t.settings.categories.addNew}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-          <Field label="Kategori adı" value={newCat.name} onChange={(v) => setNewCat({ ...newCat, name: v })} placeholder="örn. Eğitim" />
-          <Field label="Tetikleyiciler (virgülle)" value={newCat.triggers} onChange={(v) => setNewCat({ ...newCat, triggers: v })} placeholder="örn. eğitim, ders, kurs, okul" />
+          <Field label={t.settings.categories.catName} value={newCat.name} onChange={(v) => setNewCat({ ...newCat, name: v })} placeholder={t.settings.categories.catNamePh} />
+          <Field label={t.settings.categories.triggers} value={newCat.triggers} onChange={(v) => setNewCat({ ...newCat, triggers: v })} placeholder={t.settings.categories.triggersPh} />
         </div>
-        <button className="btn-primary text-sm" onClick={add} disabled={busy || !newCat.name}>Ekle</button>
+        <button className="btn-primary text-sm" onClick={add} disabled={busy || !newCat.name}>{t.settings.categories.add}</button>
       </div>
 
       {cats && cats.length > 0 && (
         <div className="card card-pad">
-          <h3 className="font-medium text-ink-900 mb-3">Tanımlı Kategoriler ({cats.length})</h3>
+          <h3 className="font-medium text-ink-900 mb-3">{t.settings.categories.defined} ({cats.length})</h3>
           <div className="space-y-2">
             {cats.map((c) => (
               <div key={c.id} className="flex items-center justify-between p-2 rounded border border-ink-100">
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-ink-900 text-sm">{c.name}</div>
                   <div className="text-xs text-ink-500 truncate">
-                    {c.triggers.length > 0 ? c.triggers.join(", ") : "(tetikleyici yok)"}
+                    {c.triggers.length > 0 ? c.triggers.join(", ") : t.settings.categories.noTriggers}
                   </div>
                 </div>
                 <button
                   className="text-xs text-red-600 hover:underline ml-3 shrink-0"
                   onClick={() => remove(c.id)}
                 >
-                  Sil
+                  {t.common.delete}
                 </button>
               </div>
             ))}
@@ -365,6 +372,7 @@ function CategoriesTab({ settings }: { settings: AppSettings }) {
 }
 
 function SiteTab({ settings, onSave }: { settings: AppSettings; onSave: () => void }) {
+  const t = useT();
   const [path, setPath] = useState(settings.site_path);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -374,10 +382,10 @@ function SiteTab({ settings, onSave }: { settings: AppSettings; onSave: () => vo
     setMsg(null);
     try {
       await api.updateSettings({ site_path: path });
-      setMsg("✓ Site yolu kaydedildi.");
+      setMsg(t.settings.site.saved);
       onSave();
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -385,22 +393,17 @@ function SiteTab({ settings, onSave }: { settings: AppSettings; onSave: () => vo
 
   return (
     <div className="card card-pad max-w-2xl space-y-4">
-      <p className="text-sm text-ink-500">
-        İçerik boşluk analizi için sitenizin lokal kaynak kodu klasörünün yolunu girin (Next.js / Remix / generic markdown blog vb.).
-        Klasör altında <code>app/</code> veya <code>app/blog/</code> bekleniyor.
-      </p>
+      <p className="text-sm text-ink-500">{t.settings.site.hint}</p>
       <Field
-        label="Lokal Site Yolu"
+        label={t.settings.site.label}
         value={path}
         onChange={setPath}
-        placeholder="c:/Users/.../my-site"
+        placeholder={t.settings.site.placeholder}
       />
-      <p className="text-xs text-ink-500">
-        Site bulutta (Vercel/Netlify) ise: repo'yu lokale clone edip yolunu burada gir. Daha sonra Genel Bakış'tan "Siteyi Tara" diyebilirsin.
-      </p>
+      <p className="text-xs text-ink-500">{t.settings.site.cloudHint}</p>
       <div className="flex items-center gap-3">
         <button className="btn-primary" onClick={save} disabled={saving}>
-          {saving ? "Kaydediliyor…" : "Kaydet"}
+          {saving ? t.common.saving : t.common.save}
         </button>
         {msg && <span className={`text-sm ${msg.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{msg}</span>}
       </div>
@@ -409,6 +412,8 @@ function SiteTab({ settings, onSave }: { settings: AppSettings; onSave: () => vo
 }
 
 function SystemTab({ settings, onSave }: { settings: AppSettings; onSave: () => void }) {
+  const t = useT();
+  const { setLang } = useLang();
   const [form, setForm] = useState({ geo_target: settings.geo_target, language: settings.language });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -418,10 +423,11 @@ function SystemTab({ settings, onSave }: { settings: AppSettings; onSave: () => 
     setMsg(null);
     try {
       await api.updateSettings(form);
-      setMsg("✓ Sistem ayarları kaydedildi. AI cevapları yeni dilde gelecek.");
+      setLang(form.language.toLowerCase().startsWith("en") ? "en" : "tr");
+      setMsg(t.settings.system.saved);
       onSave();
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -429,10 +435,10 @@ function SystemTab({ settings, onSave }: { settings: AppSettings; onSave: () => 
 
   return (
     <div className="card card-pad max-w-2xl space-y-4">
-      <p className="text-sm text-ink-500">Pytrends coğrafya + AI çıktı dili.</p>
+      <p className="text-sm text-ink-500">{t.settings.system.hint}</p>
 
       <div>
-        <label className="label block mb-1">AI Çıktı Dili</label>
+        <label className="label block mb-1">{t.settings.system.language}</label>
         <select
           className="input"
           value={form.language}
@@ -441,38 +447,33 @@ function SystemTab({ settings, onSave }: { settings: AppSettings; onSave: () => 
           <option value="tr-TR">🇹🇷 Türkçe (tr-TR)</option>
           <option value="en-US">🇺🇸 English (en-US)</option>
         </select>
-        <p className="text-xs text-ink-500 mt-1">
-          AI sohbet, yazı üretimi, kelime önerileri bu dilde olur. UI ve veri Türkçe kalır.
-        </p>
+        <p className="text-xs text-ink-500 mt-1">{t.settings.system.languageHint}</p>
       </div>
 
       <div>
-        <label className="label block mb-1">Coğrafya (Pytrends geo)</label>
+        <label className="label block mb-1">{t.settings.system.geo}</label>
         <select
           className="input"
           value={form.geo_target}
           onChange={(e) => setForm({ ...form, geo_target: e.target.value })}
         >
-          <option value="TR">🇹🇷 Türkiye (TR)</option>
-          <option value="US">🇺🇸 ABD (US)</option>
-          <option value="GB">🇬🇧 İngiltere (GB)</option>
-          <option value="DE">🇩🇪 Almanya (DE)</option>
-          <option value="FR">🇫🇷 Fransa (FR)</option>
-          <option value="">🌍 Dünya (boş = global)</option>
+          <option value="TR">{t.settings.system.geoTr}</option>
+          <option value="US">{t.settings.system.geoUs}</option>
+          <option value="GB">{t.settings.system.geoGb}</option>
+          <option value="DE">{t.settings.system.geoDe}</option>
+          <option value="FR">{t.settings.system.geoFr}</option>
+          <option value="">{t.settings.system.geoWorld}</option>
         </select>
       </div>
 
       <div className="flex items-center gap-3">
         <button className="btn-primary" onClick={save} disabled={saving}>
-          {saving ? "Kaydediliyor…" : "Kaydet"}
+          {saving ? t.common.saving : t.common.save}
         </button>
         {msg && <span className={`text-sm ${msg.startsWith("✓") ? "text-emerald-700" : "text-red-600"}`}>{msg}</span>}
       </div>
 
-      <p className="text-xs text-ink-500 pt-2 border-t border-ink-100">
-        Dil değişikliği <strong>hemen aktif</strong> — AI bir sonraki istekte yeni dilde cevap verir.
-        Coğrafya değişimi sonraki Pytrends fetch'inde geçerli olur.
-      </p>
+      <p className="text-xs text-ink-500 pt-2 border-t border-ink-100">{t.settings.system.footer}</p>
     </div>
   );
 }

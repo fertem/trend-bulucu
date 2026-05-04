@@ -7,12 +7,13 @@ import {
 } from "recharts";
 import { api, MonthProfile, YoYPoint, VsHistoryResponse } from "@/lib/api";
 import { YearMonthHeatmap } from "./YearMonthHeatmap";
-
-const MONTH_NAMES = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+import { useT } from "@/lib/i18n";
 
 const YEAR_COLORS = ["#94a3b8", "#cbd5e1", "#a78bfa", "#60a5fa", "#2563eb"];
 
 export function SeasonalityPanel({ keyword }: { keyword: string }) {
+  const t = useT();
+  const MONTH_NAMES = t.months.short;
   const [profile, setProfile] = useState<Record<string, MonthProfile | null> | null>(null);
   const [yoy, setYoy] = useState<YoYPoint[] | null>(null);
   const [vs, setVs] = useState<VsHistoryResponse | null>(null);
@@ -43,7 +44,7 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
   if (hasData === false) {
     return (
       <div className="card card-pad text-sm text-ink-500">
-        Tarihsel mevsimsellik için önce <strong>Yönetim → "5 Yıllık Veriyi Çek"</strong>.
+        {t.seasonality.needHistorical}
       </div>
     );
   }
@@ -82,27 +83,25 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
     <div className="space-y-6">
       {vs && (
         <div className="card card-pad">
-          <h3 className="font-medium text-ink-900 mb-3">
-            Bu {vs.target_month_name} vs Tarihsel {vs.target_month_name}
-          </h3>
+          <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.vsHistoryTitle(vs.target_month_name)}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <div className="label">Bu yıl</div>
+              <div className="label">{t.seasonality.thisYear}</div>
               <div className="stat-num mt-1">{vs.this_year !== null ? vs.this_year.toFixed(0) : "—"}</div>
               <div className="text-xs text-ink-500 mt-0.5">{vs.target_month_name} {new Date().getFullYear()}</div>
             </div>
             <div>
-              <div className="label">Geçen yıl</div>
+              <div className="label">{t.seasonality.lastYear}</div>
               <div className="stat-num mt-1">{vs.last_year !== null ? vs.last_year.toFixed(0) : "—"}</div>
-              <div className="text-xs text-ink-500 mt-0.5">aynı ay {new Date().getFullYear() - 1}</div>
+              <div className="text-xs text-ink-500 mt-0.5">{t.seasonality.sameMonth} {new Date().getFullYear() - 1}</div>
             </div>
             <div>
-              <div className="label">5 yıl ortalama</div>
+              <div className="label">{t.seasonality.avg5y}</div>
               <div className="stat-num mt-1">{vs.history_5y_avg.toFixed(0)}</div>
-              <div className="text-xs text-ink-500 mt-0.5">tarihsel baz</div>
+              <div className="text-xs text-ink-500 mt-0.5">{t.seasonality.historicalBaseline}</div>
             </div>
             <div>
-              <div className="label">Tarihsel sapma</div>
+              <div className="label">{t.seasonality.histDelta}</div>
               <div className={`stat-num mt-1 ${
                 (vs.delta_vs_history_pct ?? 0) > 0 ? "text-emerald-700" :
                 (vs.delta_vs_history_pct ?? 0) < 0 ? "text-red-600" : ""
@@ -113,7 +112,7 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
               </div>
               {vs.delta_vs_last_year_pct !== null && (
                 <div className="text-xs text-ink-500 mt-0.5">
-                  geçen yıla göre: {vs.delta_vs_last_year_pct > 0 ? "+" : ""}{vs.delta_vs_last_year_pct.toFixed(0)}%
+                  {t.seasonality.vsLastYear}: {vs.delta_vs_last_year_pct > 0 ? "+" : ""}{vs.delta_vs_last_year_pct.toFixed(0)}%
                 </div>
               )}
             </div>
@@ -123,7 +122,7 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
 
       {profile && monthBarData.some((d) => d.mean > 0) && (
         <div className="card card-pad">
-          <h3 className="font-medium text-ink-900 mb-3">Aylık Profil (5 yıl ortalaması)</h3>
+          <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.monthlyProfile}</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={monthBarData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
@@ -137,15 +136,13 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-          <div className="text-xs text-ink-500 mt-2">
-            Yeşil çubuk = içinde olduğun ay. Yüksek çubuk = tarihsel olarak o ayda daha çok aratılmış.
-          </div>
+          <div className="text-xs text-ink-500 mt-2">{t.seasonality.monthlyProfileHint}</div>
         </div>
       )}
 
       {yoy && yoy.length > 0 && years.length >= 2 && (
         <div className="card card-pad">
-          <h3 className="font-medium text-ink-900 mb-3">Yıl Yıl Karşılaştırma (5 yıl)</h3>
+          <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.yearComparison}</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={yoyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
@@ -166,9 +163,7 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
               ))}
             </LineChart>
           </ResponsiveContainer>
-          <div className="text-xs text-ink-500 mt-2">
-            Koyu mavi = bu yıl. Açık tonlar = geçmiş yıllar.
-          </div>
+          <div className="text-xs text-ink-500 mt-2">{t.seasonality.yearComparisonHint}</div>
         </div>
       )}
 
@@ -190,7 +185,7 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
         if (!hasBand) return null;
         return (
           <div className="card card-pad">
-            <h3 className="font-medium text-ink-900 mb-3">Bu Yıl vs 5 Yıl Bandı</h3>
+            <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.bandTitle}</h3>
             <ResponsiveContainer width="100%" height={260}>
               <ComposedChart data={bandData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
@@ -198,25 +193,21 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
                 <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
                 <Tooltip contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="range" name="5y p25–p75 bandı" fill="#cbd5e1" stroke="none" fillOpacity={0.5} />
-                <Line type="monotone" dataKey="median" name="5y medyan" stroke="#64748b" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
-                <Line type="monotone" dataKey="current" name={`${currentYear} (bu yıl)`} stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+                <Area type="monotone" dataKey="range" name={t.seasonality.bandLegendRange} fill="#cbd5e1" stroke="none" fillOpacity={0.5} />
+                <Line type="monotone" dataKey="median" name={t.seasonality.bandLegendMedian} stroke="#64748b" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
+                <Line type="monotone" dataKey="current" name={t.seasonality.bandLegendCurrent(currentYear)} stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
               </ComposedChart>
             </ResponsiveContainer>
-            <div className="text-xs text-ink-500 mt-2">
-              Gri bant = son 5 yılın p25-p75 aralığı (tipik). Bu yılın çizgisi bandın dışına çıkarsa olağandışı durum.
-            </div>
+            <div className="text-xs text-ink-500 mt-2">{t.seasonality.bandHint}</div>
           </div>
         );
       })()}
 
       {yoy && yoy.length > 0 && (
         <div className="card card-pad">
-          <h3 className="font-medium text-ink-900 mb-3">5 Yıl × 12 Ay Heatmap</h3>
+          <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.heatmapTitle}</h3>
           <YearMonthHeatmap data={yoy} />
-          <div className="text-xs text-ink-500 mt-3">
-            Koyu hücreler = aratılma zirvesi. Aynı sütun (ay) boyunca renkler tutarlıysa o ay tarihsel olarak yoğun demektir.
-          </div>
+          <div className="text-xs text-ink-500 mt-3">{t.seasonality.heatmapHint}</div>
         </div>
       )}
     </div>

@@ -4,18 +4,20 @@ import Link from "next/link";
 import { TrendScore } from "@/lib/api";
 import { GrowthBadge } from "./GrowthBadge";
 import { formatVolume } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export function TrendTable({
   rows,
-  emptyText = "Henüz veri yok.",
+  emptyText,
   showCategory = true,
 }: {
   rows: TrendScore[];
   emptyText?: string;
   showCategory?: boolean;
 }) {
+  const t = useT();
   if (!rows || rows.length === 0) {
-    return <div className="text-sm text-ink-500 py-6 text-center">{emptyText}</div>;
+    return <div className="text-sm text-ink-500 py-6 text-center">{emptyText || t.trendTable.empty}</div>;
   }
 
   const hasVolume = rows.some((r) => typeof r.volume_monthly === "number");
@@ -25,11 +27,11 @@ export function TrendTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-ink-500">
-            <th className="font-medium py-2 pr-4">Kelime</th>
-            {showCategory && <th className="font-medium py-2 pr-4">Kategori</th>}
-            {hasVolume && <th className="font-medium py-2 pr-4 text-right">Aylık arama</th>}
-            <th className="font-medium py-2 pr-4 text-right">Son 7g ilgi</th>
-            <th className="font-medium py-2 pr-4 text-right">Değişim</th>
+            <th className="font-medium py-2 pr-4">{t.trendTable.keyword}</th>
+            {showCategory && <th className="font-medium py-2 pr-4">{t.trendTable.category}</th>}
+            {hasVolume && <th className="font-medium py-2 pr-4 text-right">{t.trendTable.monthlySearch}</th>}
+            <th className="font-medium py-2 pr-4 text-right">{t.trendTable.last7d}</th>
+            <th className="font-medium py-2 pr-4 text-right">{t.trendTable.change}</th>
           </tr>
         </thead>
         <tbody>
@@ -49,7 +51,7 @@ export function TrendTable({
                 <td className="py-2 pr-4 text-right tabular-nums">
                   <span className="text-ink-900">{formatVolume(r.volume_monthly)}</span>
                   {typeof r.volume_recent === "number" && r.volume_recent > 0 && r.volume_recent !== r.volume_monthly && (
-                    <span className="text-xs text-ink-500 ml-1">/ son3a {formatVolume(r.volume_recent)}</span>
+                    <span className="text-xs text-ink-500 ml-1">/ {t.trendTable.last3m} {formatVolume(r.volume_recent)}</span>
                   )}
                 </td>
               )}

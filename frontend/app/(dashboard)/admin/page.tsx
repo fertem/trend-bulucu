@@ -6,10 +6,11 @@ import { api, RunItem } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { KeywordSuggester } from "@/components/KeywordSuggester";
 import { LongTailDiscovery } from "@/components/LongTailDiscovery";
-import { useT } from "@/lib/i18n";
+import { useT, useLang } from "@/lib/i18n";
 
 export default function AdminPage() {
   const t = useT();
+  const { lang } = useLang();
   const [hasAi, setHasAi] = useState(false);
   useEffect(() => {
     api.publicConfig().then((c) => setHasAi(c.has_ai)).catch(() => {});
@@ -29,7 +30,7 @@ export default function AdminPage() {
       setMsg(r.message);
       setTimeout(() => mutate(), 2000);
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setBusy(null);
     }
@@ -40,9 +41,9 @@ export default function AdminPage() {
     setMsg(null);
     try {
       const r = await api.recomputeScores();
-      setMsg(`${r.recomputed} kelime için skor güncellendi.`);
+      setMsg(t.admin.msgRecomputed(r.recomputed));
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setBusy(null);
     }
@@ -56,7 +57,7 @@ export default function AdminPage() {
       setMsg(r.message);
       setTimeout(() => mutateHist(), 60_000);
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setBusy(null);
     }
@@ -68,22 +69,22 @@ export default function AdminPage() {
     try {
       const r = await api.refreshVolumes(force);
       if (r.status === "ok") {
-        setMsg(`Google Ads: ${r.updated} kelime için hacim güncellendi.`);
+        setMsg(t.admin.msgVolumes(r.updated ?? 0));
       } else if (r.status === "fresh") {
-        setMsg("Tüm hacim verisi zaten güncel (<7 gün). 'Zorla' diyerek yine çekebilirsin.");
+        setMsg(t.admin.msgFresh);
       } else if (r.status === "disabled") {
-        setMsg("Google Ads .env'de yapılandırılmamış.");
+        setMsg(t.admin.msgAdsDisabled);
       } else if (r.status === "error") {
-        setMsg(`Hata: ${r.error}`);
+        setMsg(`${t.common.error}: ${r.error}`);
       }
     } catch (e: any) {
-      setMsg(`Hata: ${e.message}`);
+      setMsg(`${t.common.error}: ${e.message}`);
     } finally {
       setBusy(null);
     }
   };
 
-  const fmt = (s: string | null) => (s ? new Date(s).toLocaleString("tr-TR") : "—");
+  const fmt = (s: string | null) => (s ? new Date(s).toLocaleString(lang === "en" ? "en-US" : "tr-TR") : "—");
 
   return (
     <div>
@@ -98,64 +99,61 @@ export default function AdminPage() {
 
       <div className="card card-pad mb-6">
         <div className="flex items-start justify-between mb-3">
-          <h2 className="font-medium text-ink-900">İşlemler</h2>
+          <h2 className="font-medium text-ink-900">{t.admin.operations}</h2>
           <div className="flex items-center gap-2 text-xs">
             <span
               className={`badge ${
                 adsStatus?.configured ? "badge-up" : "badge-down"
               }`}
             >
-              Google Ads: {adsStatus?.configured ? "bağlı" : "kapalı"}
+              Google Ads: {adsStatus?.configured ? t.admin.adsConnected : t.admin.adsClosed}
             </span>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button className="btn-primary" onClick={triggerCollect} disabled={busy !== null}>
-            {busy === "collect" ? "Başlatılıyor…" : "Şimdi Topla"}
+            {busy === "collect" ? t.admin.starting : t.admin.collectNow}
           </button>
           <button className="btn-ghost" onClick={recompute} disabled={busy !== null}>
-            {busy === "score" ? "Hesaplanıyor…" : "Skorları Yeniden Hesapla"}
+            {busy === "score" ? t.admin.computing : t.admin.recomputeScores}
           </button>
           {adsStatus?.configured && (
             <>
               <button className="btn-ghost" onClick={() => refreshVolumes(false)} disabled={busy !== null}>
-                {busy === "volumes" ? "Güncelleniyor…" : "Hacmi Güncelle"}
+                {busy === "volumes" ? t.admin.updating : t.admin.refreshVolumes}
               </button>
               <button className="btn-ghost text-xs" onClick={() => refreshVolumes(true)} disabled={busy !== null}>
-                Zorla (cache'i atla)
+                {t.admin.forceVolumes}
               </button>
             </>
           )}
           <button className="btn-ghost" onClick={collectHistorical} disabled={busy !== null}>
             {busy === "historical"
-              ? "Başlatılıyor…"
+              ? t.admin.starting
               : histStatus?.has_data
-                ? "5 Yıllık Veriyi Tazele"
-                : "5 Yıllık Veriyi Çek"}
+                ? t.admin.fetchHistoricalRefresh
+                : t.admin.fetchHistoricalNew}
           </button>
         </div>
         {msg && <div className="text-sm text-ink-700 mt-3">{msg}</div>}
-        <p className="text-xs text-ink-500 mt-4">
-          Toplama Pytrends üzerinden yapılır ve birkaç dakika sürer. Hacim verisi Google Ads Keyword Planner'dan
-          gelir ve 7 gün cache'lenir.
-        </p>
+        <p className="text-xs text-ink-500 mt-4">{t.admin.operationsHint}</p>
       </div>
 
       <section className="card card-pad">
-        <h2 className="font-medium text-ink-900 mb-3">Son Toplama Çalışmaları</h2>
+        <h2 className="font-medium text-ink-900 mb-3">{t.admin.recentRuns}</h2>
         {!runs || runs.length === 0 ? (
-          <div className="text-sm text-ink-500">Henüz çalışma yok.</div>
+          <div className="text-sm text-ink-500">{t.admin.noRuns}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-ink-500">
-                  <th className="font-medium py-2 pr-4">Başlangıç</th>
-                  <th className="font-medium py-2 pr-4">Bitiş</th>
-                  <th className="font-medium py-2 pr-4 text-right">Denenen</th>
-                  <th className="font-medium py-2 pr-4 text-right">Başarılı</th>
-                  <th className="font-medium py-2 pr-4 text-right">Hatalı</th>
-                  <th className="font-medium py-2 pr-4">Durum</th>
+                  <th className="font-medium py-2 pr-4">{t.admin.th.start}</th>
+                  <th className="font-medium py-2 pr-4">{t.admin.th.end}</th>
+                  <th className="font-medium py-2 pr-4 text-right">{t.admin.th.attempted}</th>
+                  <th className="font-medium py-2 pr-4 text-right">{t.admin.th.succeeded}</th>
+                  <th className="font-medium py-2 pr-4 text-right">{t.admin.th.failed}</th>
+                  <th className="font-medium py-2 pr-4">{t.admin.th.status}</th>
                 </tr>
               </thead>
               <tbody>

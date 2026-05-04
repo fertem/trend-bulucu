@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { api, SetupStatus, SetupStep } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 const DISMISS_KEY = "setup-checklist-dismissed";
 
 export function SetupChecklist({ alwaysShow = false }: { alwaysShow?: boolean }) {
+  const t = useT();
   const { data } = useSWR<SetupStatus>("/api/system/setup-status", api.fetcher, {
-    refreshInterval: 30_000, // her 30 sn'de tazele (kullanıcı setup yaparken)
+    refreshInterval: 30_000,
   });
   const [collapsed, setCollapsed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -22,8 +24,6 @@ export function SetupChecklist({ alwaysShow = false }: { alwaysShow?: boolean })
   }, []);
 
   if (!data) return null;
-
-  // Eğer tamamen kuruluysa ve kullanıcı reddetmişse, gösterme (alwaysShow değilse)
   if (!alwaysShow && data.fully_setup && dismissed) return null;
 
   const totalSteps = data.required_total + data.optional_total;
@@ -40,34 +40,30 @@ export function SetupChecklist({ alwaysShow = false }: { alwaysShow?: boolean })
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-brand-700 uppercase tracking-wide">Kurulum Rehberi</span>
+            <span className="text-xs font-medium text-brand-700 uppercase tracking-wide">{t.setup.overline}</span>
             {data.fully_setup ? (
-              <span className="badge badge-up">✓ Zorunlu adımlar tamam</span>
+              <span className="badge badge-up">{t.setup.requiredDone}</span>
             ) : (
-              <span className="badge badge-cat">{data.required_done}/{data.required_total} zorunlu</span>
+              <span className="badge badge-cat">{t.setup.requiredCount(data.required_done, data.required_total)}</span>
             )}
           </div>
           <h2 className="text-lg font-semibold text-ink-900 mt-1">
-            {data.fully_setup
-              ? "🎉 Sistem hazır — opsiyonel entegrasyonlarla daha güçlü hale getir"
-              : "🪄 Kurulumunu tamamla"}
+            {data.fully_setup ? t.setup.titleReady : t.setup.titleSetup}
           </h2>
-          <p className="text-xs text-ink-500 mt-1">
-            {totalDone}/{totalSteps} adım tamamlandı · zorunlu olanlar bitince panel tam çalışır
-          </p>
+          <p className="text-xs text-ink-500 mt-1">{t.setup.progress(totalDone, totalSteps)}</p>
         </div>
         <div className="flex gap-1">
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="text-xs px-2 py-1 rounded text-ink-500 hover:bg-ink-100"
           >
-            {collapsed ? "▾ Detayı aç" : "▴ Kapat"}
+            {collapsed ? t.setup.expand : t.setup.collapse}
           </button>
           {data.fully_setup && (
             <button
               onClick={dismiss}
               className="text-xs px-2 py-1 rounded text-ink-500 hover:bg-ink-100"
-              title="Bu rehberi gizle"
+              title={t.setup.hide}
             >
               ✕
             </button>
@@ -75,7 +71,6 @@ export function SetupChecklist({ alwaysShow = false }: { alwaysShow?: boolean })
         </div>
       </div>
 
-      {/* İlerleme çubuğu */}
       <div className="h-2 bg-ink-100 rounded overflow-hidden mb-4">
         <div
           className="h-full bg-gradient-to-r from-brand-500 to-emerald-500 transition-all"
@@ -86,17 +81,15 @@ export function SetupChecklist({ alwaysShow = false }: { alwaysShow?: boolean })
       {!collapsed && (
         <>
           <div className="space-y-2">
-            <SectionHeader title="Zorunlu Adımlar" count={`${data.required_done}/${data.required_total}`} />
+            <SectionHeader title={t.setup.required} count={`${data.required_done}/${data.required_total}`} />
             {data.steps.filter((s) => s.required).map((step, i) => (
               <StepRow key={step.id} step={step} index={i + 1} />
             ))}
           </div>
 
           <div className="space-y-2 mt-4 pt-4 border-t border-ink-100">
-            <SectionHeader title="Opsiyonel Entegrasyonlar" count={`${data.optional_done}/${data.optional_total}`} />
-            <p className="text-xs text-ink-500 mb-2">
-              Bunlar zorunlu değil ama tamamlayınca panel çok daha güçlü çalışır.
-            </p>
+            <SectionHeader title={t.setup.optional} count={`${data.optional_done}/${data.optional_total}`} />
+            <p className="text-xs text-ink-500 mb-2">{t.setup.optionalHint}</p>
             {data.steps.filter((s) => !s.required).map((step, i) => (
               <StepRow key={step.id} step={step} index={i + 1 + data.required_total} />
             ))}
@@ -105,11 +98,9 @@ export function SetupChecklist({ alwaysShow = false }: { alwaysShow?: boolean })
           {data.fully_setup && (
             <div className="mt-4 pt-3 border-t border-emerald-100">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <p className="text-sm text-emerald-700 font-medium">
-                  ✓ Tüm zorunlu adımlar tamamlandı. Sistem aktif!
-                </p>
+                <p className="text-sm text-emerald-700 font-medium">{t.setup.fullyReady}</p>
                 <button onClick={dismiss} className="btn-ghost text-xs">
-                  Rehberi Gizle
+                  {t.setup.hideGuide}
                 </button>
               </div>
             </div>
@@ -130,6 +121,7 @@ function SectionHeader({ title, count }: { title: string; count: string }) {
 }
 
 function StepRow({ step, index }: { step: SetupStep; index: number }) {
+  const t = useT();
   const counter = step.current_count !== undefined && step.target_count !== undefined
     ? ` (${step.current_count}/${step.target_count})`
     : "";
@@ -162,7 +154,7 @@ function StepRow({ step, index }: { step: SetupStep; index: number }) {
             rel="noreferrer"
             className="text-xs text-brand-700 hover:underline inline-block mt-1"
           >
-            📖 Detaylı rehber
+            {t.setup.detailedGuide}
           </a>
         )}
       </div>

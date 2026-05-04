@@ -5,13 +5,11 @@ import Link from "next/link";
 import useSWR from "swr";
 import { api, MonthlyOutlook, SeasonalOutlookAI } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
-
-const MONTHS = [
-  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
-];
+import { useT } from "@/lib/i18n";
 
 export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
+  const t = useT();
+  const MONTHS = t.months.long;
   const { data: status } = useSWR<{ has_data: boolean; last_fetched_at: string | null; last_run_status: string | null }>("/api/seasonality/status", api.fetcher);
 
   const currentMonth = new Date().getMonth() + 1;
@@ -48,7 +46,7 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
       setAiData(r);
       try { localStorage.setItem(`seasonal-ai-cache-m${selectedMonth}`, JSON.stringify({ at: Date.now(), data: r })); } catch {}
     } catch (e: any) {
-      setAiError(e.message || "AI cevabı alınamadı");
+      setAiError(e.message || t.monthlyOutlook.aiError);
     } finally {
       setAiLoading(false);
     }
@@ -57,29 +55,24 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
   if (!status?.has_data) {
     return (
       <section className="card card-pad mb-6 border-dashed border-ink-200">
-        <div className="text-xs font-medium text-ink-500 uppercase tracking-wide">Tarihsel Mevsimsellik</div>
-        <h2 className="font-medium text-ink-900 mt-1">5 yıllık veri henüz çekilmedi</h2>
-        <p className="text-sm text-ink-500 mt-2">
-          Yönetim → <strong>"5 Yıllık Veriyi Çek"</strong> butonuna basıp bekle (~3-5 dk).
-        </p>
+        <div className="text-xs font-medium text-ink-500 uppercase tracking-wide">{t.monthlyOutlook.overlineFallback}</div>
+        <h2 className="font-medium text-ink-900 mt-1">{t.monthlyOutlook.notFetched}</h2>
+        <p className="text-sm text-ink-500 mt-2">{t.monthlyOutlook.notFetchedHint}</p>
       </section>
     );
   }
 
   const top = data?.by_lift.slice(0, 8) ?? [];
+  const monthName = data?.target_month_name ?? MONTHS[selectedMonth - 1];
 
   return (
     <section className="card card-pad mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50/40 to-white">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
-          <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide">
-            Tarihsel Mevsimsellik · 5 yıllık veri
-          </div>
-          <h2 className="text-lg font-semibold text-ink-900 mt-1">
-            {data?.target_month_name ?? MONTHS[selectedMonth - 1]} ayı tarihsel olarak nasıl?
-          </h2>
+          <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide">{t.monthlyOutlook.overline}</div>
+          <h2 className="text-lg font-semibold text-ink-900 mt-1">{t.monthlyOutlook.titleQ(monthName)}</h2>
           <div className="text-xs text-ink-500 mt-0.5">
-            Son veri çekimi: {relativeTime(status?.last_fetched_at)}
+            {t.monthlyOutlook.lastFetch}: {relativeTime(status?.last_fetched_at)}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -90,31 +83,29 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
           >
             {MONTHS.map((name, i) => (
               <option key={i} value={i + 1}>
-                {name}{i + 1 === currentMonth ? " (bu ay)" : ""}
+                {name}{i + 1 === currentMonth ? ` ${t.monthlyOutlook.thisMonth}` : ""}
               </option>
             ))}
           </select>
           {hasAi && (
             <button className="btn-ghost text-xs whitespace-nowrap" onClick={generateAI} disabled={aiLoading}>
-              {aiLoading ? "AI hazırlıyor…" : aiData ? "AI Yenile" : "AI Tahmini"}
+              {aiLoading ? t.monthlyOutlook.aiPreparing : aiData ? t.monthlyOutlook.aiRefresh : t.monthlyOutlook.aiPredict}
             </button>
           )}
         </div>
       </div>
 
-      <p className="text-xs text-ink-500 -mt-2 mb-4">
-        "Lift": kelimenin bu aydaki tarihsel ortalamasının yıllık ortalamadan farkı. Pozitif = bu ay yüksek, negatif = bu ay düşük.
-      </p>
+      <p className="text-xs text-ink-500 -mt-2 mb-4">{t.monthlyOutlook.liftHint}</p>
 
       {aiError && <div className="text-sm text-red-600 mb-3">{aiError}</div>}
-      {isLoading && <div className="text-sm text-ink-500 mb-3">Yükleniyor…</div>}
+      {isLoading && <div className="text-sm text-ink-500 mb-3">{t.common.loading}</div>}
 
       {aiData && (
         <div className="mb-5 p-4 rounded-md border border-emerald-100 bg-white">
           <div className="font-medium text-ink-900">{aiData.headline}</div>
           {aiData.context && (
             <p className="text-sm text-ink-700 mt-2">
-              <span className="label mr-1">Bağlam:</span>{aiData.context}
+              <span className="label mr-1">{t.monthlyOutlook.context}:</span>{aiData.context}
             </p>
           )}
           {aiData.predictions && aiData.predictions.length > 0 && (
@@ -130,7 +121,7 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
           )}
           {aiData.early_movers && (
             <div className="mt-3 pt-3 border-t border-emerald-100">
-              <span className="label mr-1">Şimdiden hazırlık:</span>
+              <span className="label mr-1">{t.monthlyOutlook.earlyMovers}:</span>
               <span className="text-sm text-ink-700">{aiData.early_movers}</span>
             </div>
           )}
@@ -139,7 +130,7 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
 
       {top.length > 0 && (
         <div>
-          <div className="label mb-2">{data?.target_month_name}'ta Tarihsel Olarak Zirvede Olanlar</div>
+          <div className="label mb-2">{t.monthlyOutlook.historicalPeak(monthName)}</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {top.map((it) => (
               <Link
@@ -158,14 +149,14 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
                     }`}>
                       {it.lift_pct > 0 ? "+" : ""}{it.lift_pct.toFixed(0)}%
                     </div>
-                    <div className="text-xs text-ink-500">ort: {it.month_avg.toFixed(0)}</div>
+                    <div className="text-xs text-ink-500">{t.monthlyOutlook.avg}: {it.month_avg.toFixed(0)}</div>
                   </div>
                 </div>
                 {it.is_seasonal_peak && (
-                  <div className="text-xs text-emerald-700 mt-1">⭐ Yıl zirvesi bu ay</div>
+                  <div className="text-xs text-emerald-700 mt-1">{t.monthlyOutlook.yearPeakThis}</div>
                 )}
                 {!it.is_seasonal_peak && it.peak_month_name && (
-                  <div className="text-xs text-ink-500 mt-1">Yıl zirvesi: {it.peak_month_name}</div>
+                  <div className="text-xs text-ink-500 mt-1">{t.monthlyOutlook.yearPeak}: {it.peak_month_name}</div>
                 )}
               </Link>
             ))}

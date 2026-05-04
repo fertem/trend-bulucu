@@ -3,6 +3,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import useSWR from "swr";
 import { api, TrendScore } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Kodlama: "#2563eb",
@@ -14,6 +15,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function CategoryDonut() {
+  const t = useT();
   const { data } = useSWR<Record<string, TrendScore[]>>("/api/trends/categories", api.fetcher);
   if (!data) return null;
 
@@ -33,8 +35,8 @@ export function CategoryDonut() {
   return (
     <div className="card card-pad">
       <div className="flex items-start justify-between mb-2">
-        <h2 className="font-medium text-ink-900">Kategori Dağılımı</h2>
-        <span className="text-xs text-ink-500">{total} kelime</span>
+        <h2 className="font-medium text-ink-900">{t.categoryDonut.title}</h2>
+        <span className="text-xs text-ink-500">{total} {t.categoryDonut.keywords}</span>
       </div>
       <ResponsiveContainer width="100%" height={220}>
         <PieChart>
@@ -55,7 +57,7 @@ export function CategoryDonut() {
           <Tooltip
             contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }}
             formatter={(v: any, _name: any, ctx: any) => [
-              `${v} kelime · ort ilgi ${ctx.payload.avgInterest.toFixed(1)}`,
+              `${v} ${t.categoryDonut.keywords} · ${t.monthlyOutlook.avg} ${ctx.payload.avgInterest.toFixed(1)}`,
               ctx.payload.name,
             ]}
           />

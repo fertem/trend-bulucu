@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { api, TrendScore } from "@/lib/api";
+import { useT, useLang } from "@/lib/i18n";
 
 const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
 
@@ -12,6 +13,8 @@ type Series = {
 };
 
 export function TopMoversArea({ topKeywords }: { topKeywords: TrendScore[] }) {
+  const t = useT();
+  const { lang } = useLang();
   const [series, setSeries] = useState<Series[] | null>(null);
   const top5 = topKeywords.slice(0, 5).map((s) => s.keyword);
 
@@ -52,14 +55,14 @@ export function TopMoversArea({ topKeywords }: { topKeywords: TrendScore[] }) {
 
   const formatted = series.map((p) => ({
     ...p,
-    label: new Date(p.date as string).toLocaleDateString("tr-TR", { month: "short", day: "numeric" }),
+    label: new Date(p.date as string).toLocaleDateString(lang === "en" ? "en-US" : "tr-TR", { month: "short", day: "numeric" }),
   }));
 
   return (
     <div className="card card-pad">
       <div className="flex items-start justify-between mb-2">
-        <h2 className="font-medium text-ink-900">Top 5 Trend · Son 30 Gün</h2>
-        <span className="text-xs text-ink-500">karşılaştırma</span>
+        <h2 className="font-medium text-ink-900">{t.topMovers.title}</h2>
+        <span className="text-xs text-ink-500">{t.topMovers.compare}</span>
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <AreaChart data={formatted} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
