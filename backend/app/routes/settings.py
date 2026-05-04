@@ -386,7 +386,7 @@ def health_check(db: Annotated[Session, Depends(get_db)]):
 
     Test çağrıları YAPMAZ — sadece config var mı diye bakar (hızlı).
     """
-    from ..models import Keyword, Category, SiteContent, SearchConsoleQuery
+    from ..models import Keyword, Category, SiteContent, SearchConsoleQuery, KeywordVolume
 
     brand_name = app_settings.get(db, "brand_name") or ""
     brand_desc = app_settings.get(db, "brand_description") or ""
@@ -396,6 +396,7 @@ def health_check(db: Annotated[Session, Depends(get_db)]):
     kw_count = db.query(Keyword).filter(Keyword.is_active == True).count()
     site_indexed = db.query(SiteContent).count()
     sc_query_count = db.query(SearchConsoleQuery).count()
+    ads_volume_count = db.query(KeywordVolume).count()
 
     items = [
         {
@@ -457,24 +458,40 @@ def health_check(db: Annotated[Session, Depends(get_db)]):
         {
             "id": "google_ads",
             "label": "Google Ads",
-            "status": "ok" if env_settings.has_google_ads else "optional",
-            "detail": env_settings.google_ads_customer_id if env_settings.has_google_ads else "bağlı değil (gerçek arama hacmi için)",
-            "action_url": "/settings",
-            "tab": "api",
+            "status": (
+                "ok" if (env_settings.has_google_ads and ads_volume_count > 0)
+                else "partial" if env_settings.has_google_ads
+                else "optional"
+            ),
+            "detail": (
+                f"{ads_volume_count} kelime için hacim verisi"
+                if ads_volume_count > 0
+                else f"yapılandırıldı ama veri yok — Yönetim → \"Hacmi Güncelle\""
+                if env_settings.has_google_ads
+                else "bağlı değil — opsiyonel (gerçek arama hacmi için, OAuth gerekir)"
+            ),
+            "action_url": "/admin" if (env_settings.has_google_ads and ads_volume_count == 0) else "/settings",
+            "tab": "api" if not env_settings.has_google_ads else None,
+            "optional": True,
         },
         {
             "id": "search_console",
             "label": "Search Console",
-            "status": "ok" if (env_settings.search_console_site_url and sc_query_count > 0) else (
-                "partial" if env_settings.search_console_site_url else "optional"
+            "status": (
+                "ok" if (env_settings.search_console_site_url and sc_query_count > 0)
+                else "partial" if env_settings.search_console_site_url
+                else "optional"
             ),
             "detail": (
                 f"{sc_query_count} sorgu • {env_settings.search_console_site_url}"
                 if (env_settings.search_console_site_url and sc_query_count > 0)
-                else env_settings.search_console_site_url or "bağlı değil (gerçek SEO performansı için)"
+                else f"{env_settings.search_console_site_url} (henüz veri yok — Genel Bakış'tan sync)"
+                if env_settings.search_console_site_url
+                else "bağlı değil — opsiyonel (gerçek SEO pozisyon/CTR için)"
             ),
             "action_url": "/settings",
             "tab": "api",
+            "optional": True,
         },
     ]
 

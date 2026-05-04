@@ -653,6 +653,27 @@ def chat(body: ChatIn, db: Annotated[Session, Depends(get_db)]):
     except Exception:
         pass
 
+    # Google Ads hacmi — KOŞULLU. Sadece gerçek veri varsa context'e gir.
+    try:
+        from .. import google_ads as _ads
+        from ..models import KeywordVolume
+        if db.query(KeywordVolume).first() is not None:
+            volumes = _ads.get_volumes_dict(db)
+            top_kws = [t["keyword"] for t in (context.get("top_trending") or [])[:8]]
+            ads_list = []
+            for kw in top_kws:
+                v = volumes.get(kw)
+                if v and (v.get("avg_monthly_searches") or 0) > 0:
+                    ads_list.append({
+                        "keyword": kw,
+                        "volume_monthly": v.get("avg_monthly_searches"),
+                        "competition": v.get("competition"),
+                    })
+            if ads_list:
+                context["ads_volumes"] = ads_list
+    except Exception:
+        pass
+
     try:
         text = ai_module.chat_with_data(body.messages, context, brand=brand)
     except Exception as e:
@@ -693,6 +714,27 @@ def chat_stream(body: ChatIn, db: Annotated[Session, Depends(get_db)]):
             "month_name": outlook.get("target_month_name"),
             "by_lift": outlook.get("by_lift", []),
         }
+    except Exception:
+        pass
+
+    # Google Ads hacmi — KOŞULLU. Sadece gerçek veri varsa context'e gir.
+    try:
+        from .. import google_ads as _ads
+        from ..models import KeywordVolume
+        if db.query(KeywordVolume).first() is not None:
+            volumes = _ads.get_volumes_dict(db)
+            top_kws = [t["keyword"] for t in (context.get("top_trending") or [])[:8]]
+            ads_list = []
+            for kw in top_kws:
+                v = volumes.get(kw)
+                if v and (v.get("avg_monthly_searches") or 0) > 0:
+                    ads_list.append({
+                        "keyword": kw,
+                        "volume_monthly": v.get("avg_monthly_searches"),
+                        "competition": v.get("competition"),
+                    })
+            if ads_list:
+                context["ads_volumes"] = ads_list
     except Exception:
         pass
 

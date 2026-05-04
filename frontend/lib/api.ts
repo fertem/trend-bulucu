@@ -730,6 +730,7 @@ export type HealthCheckResponse = {
     detail: string;
     action_url: string;
     tab: string | null;
+    optional?: boolean;
   }[];
   required_ok: number;
   required_total: number;

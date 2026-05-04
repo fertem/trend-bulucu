@@ -778,6 +778,16 @@ def _build_chat_system(messages: list[dict], context: dict, brand: dict | None) 
         for s in context["seasonality_now"].get("by_lift", [])[:5]:
             ctx_lines.append(f"  - {s['keyword']} (lift %{s.get('lift_pct', 0):+.0f})")
 
+    # Google Ads hacmi — opsiyonel, sadece veri varsa eklenir
+    if context.get("ads_volumes"):
+        ctx_lines.append("\nGOOGLE ADS — gerçek aylık arama hacmi:")
+        for v in context["ads_volumes"][:8]:
+            comp = v.get("competition", "?")
+            ctx_lines.append(
+                f"  - \"{v['keyword']}\": ~{v.get('volume_monthly', 0)}/ay, "
+                f"rekabet: {comp}"
+            )
+
     context_str = "\n".join(ctx_lines) if ctx_lines else "(veri henüz toplanmamış)"
     lang_instr = _lang_instruction(brand)
 

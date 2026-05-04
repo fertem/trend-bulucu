@@ -834,10 +834,15 @@ function HealthCard({ onJump }: { onJump: (tab: Tab) => void }) {
           >
             <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${STATUS_STYLE[it.status]}`} />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-ink-900">{it.label}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-medium text-ink-900">{it.label}</span>
+                {it.optional && (
+                  <span className="text-[10px] text-ink-500 px-1.5 py-0.5 rounded bg-ink-100">opsiyonel</span>
+                )}
+              </div>
               <div className="text-xs text-ink-500 truncate">{it.detail}</div>
             </div>
-            {it.tab && it.status !== "ok" && (
+            {it.tab && it.status !== "ok" && !it.optional && (
               <span className="text-xs text-brand-700 shrink-0 mt-1">→</span>
             )}
           </button>
