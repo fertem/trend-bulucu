@@ -133,6 +133,25 @@ export const api = {
       { method: "POST", body: JSON.stringify({ path: path ?? null }) },
     ),
 
+  // OAuth (Search Console + Google Ads — single flow)
+  oauthStatus: () =>
+    request<{
+      client_id_set: boolean;
+      client_secret_set: boolean;
+      refresh_token_set: boolean;
+      redirect_uri: string;
+    }>("/api/sc/oauth/status"),
+  oauthSaveCredentials: (client_id: string, client_secret: string) =>
+    request<{ ok: boolean; redirect_uri: string }>("/api/sc/oauth/save-credentials", {
+      method: "POST",
+      body: JSON.stringify({ client_id, client_secret }),
+    }),
+  oauthStart: () =>
+    request<{ auth_url: string; state: string; redirect_uri: string }>(
+      "/api/sc/oauth/start",
+      { method: "POST" },
+    ),
+
   // Self-update + reset
   systemVersion: () =>
     request<{ is_git: boolean; commit?: string; short?: string; branch?: string; subject?: string }>(

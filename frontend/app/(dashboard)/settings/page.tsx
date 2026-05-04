@@ -5,9 +5,10 @@ import Link from "next/link";
 import useSWR from "swr";
 import { api, AppSettings, CategoryItem, EnvItem, UpdateCheckResponse, HealthCheckResponse } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
+import { ConnectWizard } from "@/components/ConnectWizard";
 import { useT, useLang } from "@/lib/i18n";
 
-type Tab = "brand" | "api" | "categories" | "site" | "system";
+type Tab = "brand" | "api" | "connect" | "categories" | "site" | "system";
 
 export default function SettingsPage() {
   const t = useT();
@@ -18,6 +19,7 @@ export default function SettingsPage() {
   const TABS: { key: Tab; label: string; emoji: string }[] = [
     { key: "brand", label: t.settings.tabs.brand, emoji: "🏷️" },
     { key: "api", label: t.settings.tabs.api, emoji: "🔑" },
+    { key: "connect", label: "Google Bağlantısı", emoji: "🔐" },
     { key: "categories", label: t.settings.tabs.categories, emoji: "📁" },
     { key: "site", label: t.settings.tabs.site, emoji: "🌐" },
     { key: "system", label: t.settings.tabs.system, emoji: "⚙️" },
@@ -59,6 +61,7 @@ export default function SettingsPage() {
       {!settings && <div className="text-sm text-ink-500">{t.common.loading}</div>}
       {settings && tab === "brand" && <BrandTab settings={settings} onSave={() => mutate()} />}
       {settings && tab === "api" && <APITab />}
+      {settings && tab === "connect" && <ConnectWizard onConnected={() => mutate()} />}
       {settings && tab === "categories" && <CategoriesTab settings={settings} />}
       {settings && tab === "site" && <SiteTab settings={settings} onSave={() => mutate()} />}
       {settings && tab === "system" && <SystemTab settings={settings} onSave={() => mutate()} />}

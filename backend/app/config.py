@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     max_retries: int = 3
 
     cors_origins: str = "http://localhost:3000"
+    # Backend kendi public URL'i — OAuth callback'lerin redirect URI'si için
+    app_base_url: str = "http://localhost:8000"
 
     anthropic_api_key: str = ""
     openai_api_key: str = ""
