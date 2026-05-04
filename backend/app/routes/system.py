@@ -216,7 +216,7 @@ def setup_status(db: Annotated[Session, Depends(get_db)]):
             "required": False,
             "action_url": "/settings",
             "action_label": "Ayarlar → API",
-            "doc_link": "/docs/INTEGRATIONS.md#google-ads-keyword-planner",
+            "doc_link": "https://github.com/fertem/trend-bulucu/blob/main/docs/INTEGRATIONS.md#google-ads-keyword-planner",
         },
     ]
 
