@@ -22,12 +22,14 @@ class StatusUpdate(BaseModel):
 @router.get("/status")
 def status(db: Annotated[Session, Depends(get_db)]):
     from ..models import SiteContent
+    from .. import app_settings as _app_settings
     from sqlalchemy import func
+    site_path = _app_settings.get(db, "site_path") or settings.kod_org_path or ""
     count = db.query(SiteContent).count()
     last_scan = db.query(func.max(SiteContent.scanned_at)).scalar()
     return {
-        "configured": bool(settings.kod_org_path),
-        "kod_org_path": settings.kod_org_path,
+        "configured": bool(site_path.strip()),
+        "kod_org_path": site_path,
         "content_count": count,
         "last_scanned_at": last_scan.isoformat() if last_scan else None,
     }

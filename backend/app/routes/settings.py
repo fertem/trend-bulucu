@@ -65,7 +65,16 @@ def get_settings(db: Annotated[Session, Depends(get_db)]):
 
 @router.put("")
 def update_settings(body: SettingsUpdate, db: Annotated[Session, Depends(get_db)]):
-    result = app_settings.set_many(db, body.updates)
+    # Strip surrounding quotes/whitespace on path-like fields so that copy-pasted
+    # values (e.g. "C:\Users\..." with quotes) save cleanly.
+    cleaned = dict(body.updates)
+    for key in ("site_path", "brand_url"):
+        if key in cleaned and isinstance(cleaned[key], str):
+            v = cleaned[key].strip()
+            if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+                v = v[1:-1].strip()
+            cleaned[key] = v
+    result = app_settings.set_many(db, cleaned)
     return {"settings": result, "configured": app_settings.is_configured(db)}
 
 
