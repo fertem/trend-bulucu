@@ -206,7 +206,7 @@ def setup_status(db: Annotated[Session, Depends(get_db)]):
             "required": False,
             "action_url": "/",
             "action_label": "Genel Bakış → Search Console kartı",
-            "doc_link": "/docs/INTEGRATIONS.md#google-search-console",
+            "doc_link": "https://github.com/fertem/trend-bulucu/blob/main/docs/INTEGRATIONS.md#google-search-console",
         },
         {
             "id": "ads",
