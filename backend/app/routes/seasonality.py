@@ -120,3 +120,16 @@ def keyword_this_vs_history(
     if not result:
         raise HTTPException(status_code=404, detail="Yeterli tarihsel veri yok")
     return result
+
+
+@router.get("/keyword/{keyword}/projection")
+def keyword_projection(
+    keyword: str,
+    db: Annotated[Session, Depends(get_db)],
+    month: int | None = Query(None, ge=1, le=12),
+):
+    """Hedef ay için gelecek yıl projeksiyonu (lineer regresyon + CAGR)."""
+    result = seasonality_module.yearly_projection(db, keyword, month)
+    if not result:
+        raise HTTPException(status_code=404, detail="Tarihsel veri yok")
+    return result

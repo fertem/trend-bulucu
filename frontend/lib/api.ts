@@ -110,6 +110,12 @@ export const api = {
   // Site coverage / content gaps
   contentStatus: () => request<{ configured: boolean; kod_org_path: string; content_count: number }>("/api/content/status"),
   scanContent: () => request<{ status: string; total: number; blog: number; page: number; added: number; updated: number; removed: number }>("/api/content/scan", { method: "POST" }),
+  digest: (period: "daily" | "weekly" | "monthly" | "yearly" = "weekly") =>
+    request<DigestResponse>(`/api/ai/digest?period=${period}`, { method: "POST" }),
+  keywordProjection: (keyword: string, month?: number) =>
+    request<YearlyProjection>(
+      `/api/seasonality/keyword/${encodeURIComponent(keyword)}/projection${month ? `?month=${month}` : ""}`,
+    ),
   systemFreshness: () => request<SystemFreshness>("/api/system/freshness"),
   systemRefreshAll: () =>
     request<{ status: string; message: string }>("/api/system/refresh-all", { method: "POST" }),
@@ -332,7 +338,6 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ keyword }),
     }),
-  digest: () => request<DigestResponse>("/api/ai/digest", { method: "POST" }),
   suggestKeywords: () =>
     request<{ suggestions: KeywordSuggestion[] }>("/api/ai/suggest-keywords", { method: "POST" }),
   similarKeywords: (keyword: string) =>
@@ -427,6 +432,25 @@ export type DigestResponse = {
   highlights: DigestHighlight[];
   actions: DigestAction[];
   watch_out?: string;
+  period?: "daily" | "weekly" | "monthly" | "yearly";
+  has_sc_data?: boolean;
+  has_projections?: boolean;
+};
+
+export type YearlyProjection = {
+  keyword: string;
+  target_month: number;
+  target_month_name: string;
+  history: { year: number; value: number }[];
+  next_year?: number;
+  predicted?: number;
+  predicted_low?: number;
+  predicted_high?: number;
+  rmse?: number;
+  slope_per_year?: number;
+  cagr_pct?: number | null;
+  direction?: "rising" | "falling" | "flat";
+  insufficient_data: boolean;
 };
 
 export type KeywordSuggestion = {

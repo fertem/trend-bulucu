@@ -73,7 +73,19 @@ export const tr = {
   },
 
   aiDigest: {
-    overline: "AI Haftalık Özet",
+    overline: "AI Özet",
+    period: {
+      daily: "🟢 Günlük",
+      weekly: "📅 Haftalık",
+      monthly: "📆 Aylık",
+      yearly: "📈 Yıllık",
+    },
+    overlineByPeriod: {
+      daily: "AI Günlük Özet",
+      weekly: "AI Haftalık Özet",
+      monthly: "AI Aylık Özet",
+      yearly: "AI Yıllık Özet",
+    },
     defaultHeadline: "Bu haftanın trendleri tek bir bakışta",
     aiSummary: "AI özeti",
     notGenerated: "AI özeti henüz üretilmedi",
@@ -338,6 +350,22 @@ export const tr = {
     takeaways: "Okuyucu Çıkarımları",
     secondaryKw: "Yan SEO Kelimeleri",
     error: "AI cevabı alınamadı",
+  },
+
+  projection: {
+    title: "Gelecek Yıl Projeksiyonu",
+    subtitle: (month: string) => `${month} ayı için 5 yıllık trend + ${month} ${new Date().getFullYear() + 1} tahmini`,
+    historyLabel: "Geçmiş yıllar",
+    predictedLabel: "tahmini",
+    cagr: "Yıllık ort. büyüme",
+    insufficientData: "Bu kelime için yeterli yıllık veri yok (en az 2 yıl gerekir).",
+    direction: {
+      rising: "📈 Yükseliyor",
+      falling: "📉 Düşüyor",
+      flat: "➖ Sabit",
+    },
+    interpretation: (kw: string, dir: string, cagr: number, predicted: number, year: number) =>
+      `"${kw}" ${dir.toLowerCase()}, yılda ortalama %${cagr.toFixed(1)} ${cagr > 0 ? "artış" : "değişim"}. ${year} için ~${predicted.toFixed(0)} bekleniyor.`,
   },
 
   seasonality: {

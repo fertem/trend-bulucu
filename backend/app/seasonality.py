@@ -179,3 +179,85 @@ def keyword_this_vs_history(db: Session, keyword: str, target_month: int | None 
         "delta_vs_history_pct": round(delta_vs_avg, 1) if delta_vs_avg is not None else None,
         "delta_vs_last_year_pct": round(delta_vs_last, 1) if delta_vs_last is not None else None,
     }
+
+
+def _linear_regression(xs: list[float], ys: list[float]) -> tuple[float, float, float]:
+    """Simple OLS: returns (slope, intercept, rmse). Requires len >= 2."""
+    n = len(xs)
+    if n < 2:
+        return 0.0, ys[0] if ys else 0.0, 0.0
+    mx = sum(xs) / n
+    my = sum(ys) / n
+    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    den = sum((x - mx) ** 2 for x in xs) or 1e-9
+    slope = num / den
+    intercept = my - slope * mx
+    residuals = [y - (slope * x + intercept) for x, y in zip(xs, ys)]
+    rmse = (sum(r * r for r in residuals) / n) ** 0.5
+    return slope, intercept, rmse
+
+
+def yearly_projection(db: Session, keyword: str, target_month: int | None = None) -> dict | None:
+    """Geçmiş yılların aynı ayındaki değerlere bakarak gelecek yıl için projeksiyon.
+
+    Lineer regresyon (yıl → değer) + RMSE bandı + CAGR.
+    """
+    if target_month is None:
+        target_month = datetime.utcnow().month
+
+    yoy = keyword_yoy(db, keyword)
+    if not yoy:
+        return None
+
+    by_year: dict[int, list[float]] = defaultdict(list)
+    for p in yoy:
+        if p["month"] == target_month:
+            by_year[p["year"]].append(p["interest"])
+
+    if len(by_year) < 2:
+        return {
+            "keyword": keyword,
+            "target_month": target_month,
+            "target_month_name": TURKISH_MONTHS[target_month],
+            "history": [{"year": y, "value": round(mean(v), 1)} for y, v in sorted(by_year.items())],
+            "insufficient_data": True,
+        }
+
+    history = sorted([(y, mean(v)) for y, v in by_year.items()])
+    years = [float(y) for y, _ in history]
+    values = [v for _, v in history]
+    next_year = int(years[-1]) + 1
+
+    slope, intercept, rmse = _linear_regression(years, values)
+    predicted = slope * next_year + intercept
+    lo = max(0.0, predicted - 2 * rmse)
+    hi = min(100.0, predicted + 2 * rmse)
+
+    n_periods = years[-1] - years[0]
+    cagr = None
+    if n_periods >= 1 and values[0] > 0:
+        cagr = ((values[-1] / values[0]) ** (1.0 / n_periods) - 1.0) * 100.0
+
+    if slope > 0.5:
+        direction = "rising"
+    elif slope < -0.5:
+        direction = "falling"
+    else:
+        direction = "flat"
+
+    return {
+        "keyword": keyword,
+        "target_month": target_month,
+        "target_month_name": TURKISH_MONTHS[target_month],
+        "history": [{"year": int(y), "value": round(v, 1)} for y, v in history],
+        "next_year": next_year,
+        "predicted": round(predicted, 1),
+        "predicted_low": round(lo, 1),
+        "predicted_high": round(hi, 1),
+        "rmse": round(rmse, 2),
+        "slope_per_year": round(slope, 2),
+        "cagr_pct": round(cagr, 1) if cagr is not None else None,
+        "direction": direction,
+        "insufficient_data": False,
+    }
+

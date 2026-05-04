@@ -75,7 +75,19 @@ export const en: Dict = {
   },
 
   aiDigest: {
-    overline: "AI Weekly Digest",
+    overline: "AI Digest",
+    period: {
+      daily: "🟢 Daily",
+      weekly: "📅 Weekly",
+      monthly: "📆 Monthly",
+      yearly: "📈 Yearly",
+    },
+    overlineByPeriod: {
+      daily: "AI Daily Digest",
+      weekly: "AI Weekly Digest",
+      monthly: "AI Monthly Digest",
+      yearly: "AI Yearly Digest",
+    },
     defaultHeadline: "This week's trends at a glance",
     aiSummary: "AI summary",
     notGenerated: "AI summary not generated yet",
@@ -203,6 +215,22 @@ export const en: Dict = {
     takeaways: "Reader Takeaways",
     secondaryKw: "Secondary SEO Keywords",
     error: "AI response failed",
+  },
+
+  projection: {
+    title: "Next-Year Projection",
+    subtitle: (month: string) => `5-year trend for ${month} + ${month} ${new Date().getFullYear() + 1} forecast`,
+    historyLabel: "Past years",
+    predictedLabel: "forecast",
+    cagr: "Avg yearly growth",
+    insufficientData: "Not enough yearly data for this keyword (min 2 years required).",
+    direction: {
+      rising: "📈 Rising",
+      falling: "📉 Falling",
+      flat: "➖ Flat",
+    },
+    interpretation: (kw: string, dir: string, cagr: number, predicted: number, year: number) =>
+      `"${kw}" is ${dir.toLowerCase()}, averaging ${cagr.toFixed(1)}% yearly ${cagr > 0 ? "growth" : "change"}. ${year} forecast: ~${predicted.toFixed(0)}.`,
   },
 
   seasonality: {

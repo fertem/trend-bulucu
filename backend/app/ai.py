@@ -162,12 +162,24 @@ def content_ideas(keyword: str, category: str | None, brand: dict | None = None)
 
 # ─── SMART: Haftalık AI Özet (Hero card için) ───────────────────────────────
 
-def weekly_digest(top: list[dict], rising: list[dict], hot: list[dict], opportunities: list[dict],
-                  sc_summary: dict | None = None, brand: dict | None = None) -> dict:
-    """Tüm veriden yapılandırılmış haftalık özet üret. JSON döner.
+PERIOD_LABELS = {
+    "daily": ("Bugün", "son 24 saat", "günlük"),
+    "weekly": ("Bu hafta", "son 7 gün", "haftalık"),
+    "monthly": ("Bu ay", "son 30 gün", "aylık"),
+    "yearly": ("Bu yıl", "son 365 gün", "yıllık"),
+}
 
+
+def weekly_digest(top: list[dict], rising: list[dict], hot: list[dict], opportunities: list[dict],
+                  sc_summary: dict | None = None, brand: dict | None = None,
+                  period: str = "weekly", projections: list[dict] | None = None) -> dict:
+    """Tüm veriden yapılandırılmış özet üret. JSON döner.
+
+    period: daily | weekly | monthly | yearly — prompt'ta zaman kapsamını belirler.
+    projections: yıllık periyot için yearly_projection sonuçları (opsiyonel).
     sc_summary: Search Console verisi opsiyonel — varsa AI gerçek pozisyon/CTR'a referans verir.
     """
+    period_now, period_window, period_adj = PERIOD_LABELS.get(period, PERIOD_LABELS["weekly"])
     def _fmt(rows):
         return [
             f"  - {r['keyword']} (kategori: {r.get('category') or '?'}, "
@@ -220,15 +232,38 @@ def weekly_digest(top: list[dict], rising: list[dict], hot: list[dict], opportun
             "POZİSYON HAREKETİ:\n" + ("\n".join(_mv(movers)) if movers else "  (yok)")
         )
 
+    projections_block = ""
+    if projections:
+        proj_lines = []
+        for p in projections[:8]:
+            if p.get("insufficient_data"):
+                continue
+            history_str = ", ".join(f"{h['year']}={h['value']}" for h in p.get("history", []))
+            cagr = p.get("cagr_pct")
+            cagr_str = f"yıllık ~%{cagr:+.0f} büyüme" if cagr is not None else ""
+            band = int((p["predicted_high"] - p["predicted_low"]) / 2)
+            proj_lines.append(
+                f"  - \"{p['keyword']}\" {p['target_month_name']}: "
+                f"geçmiş yıllar → {history_str} "
+                f"| {p['next_year']} tahmini: {p['predicted']} (±{band}) "
+                f"{cagr_str}"
+            )
+        if proj_lines:
+            projections_block = (
+                "\n\n--- YILLIK PROJEKSİYON (lineer regresyon + RMSE bandı) ---\n"
+                + "\n".join(proj_lines)
+            )
+
     prompt = (
         f"Aşağıda {name} ({desc}) için iki veri seti var:\n"
-        "(1) Türkiye Google Trends — pazar genelinde ne arıyor\n"
+        "(1) Google Trends — pazar genelinde ne arıyor\n"
         f"(2) Google Search Console — {url or name + ' sitesinin'} GERÇEK arama performansı\n\n"
-        f"Bu ikisini birleştirerek {audience} için içerik stratejisi öner.\n\n"
-        f"{summary_data}{sc_data_block}\n\n"
+        f"Bu ikisini birleştirerek {audience} için {period_adj} içerik stratejisi öner. "
+        f"Zaman kapsamı: {period_now} ({period_window}).\n\n"
+        f"{summary_data}{sc_data_block}{projections_block}\n\n"
         "Sadece geçerli JSON formatında cevap ver (markdown kullanma). Bu yapıyı kullan:\n"
         "{\n"
-        '  "headline": "Bu haftanın tek cümlelik özeti (12-18 kelime)",\n'
+        f'  "headline": "{period_now}\'ün tek cümlelik özeti (12-18 kelime)",\n'
         '  "highlights": [\n'
         '    {"title": "Öne çıkan başlık", "reason": "1 cümle neden önemli", "keyword": "ilgili kelime"}\n'
         "  ],\n"
@@ -237,10 +272,11 @@ def weekly_digest(top: list[dict], rising: list[dict], hot: list[dict], opportun
         "  ],\n"
         '  "watch_out": "Dikkat etmesi gereken 1 risk veya kaçırmaması gereken 1 fırsat"\n'
         "}\n\n"
-        "Tam 3 highlight ve tam 3 action üret. Hepsi Türkçe, kısa ve uygulanabilir olsun. "
+        f"Tam 3 highlight ve tam 3 action üret. Hepsi Türkçe, kısa ve uygulanabilir olsun. "
+        f"{period_adj.capitalize()} kapsamında düşün — günlüksen anlık fırsatlar, yıllıksan stratejik mevsimsellik. "
         "Verideki spesifik kelimelere referans ver. Search Console verisi varsa MUTLAKA "
-        "ondaki gerçek pozisyon/CTR/tıklama bilgisine referans ver — \"şu an pos X'tesin\", "
-        "\"CTR'ın çok düşük\", \"sayfa 2'de bekliyorsun\" gibi somut SEO aksiyonları öner."
+        "ondaki gerçek pozisyon/CTR/tıklama bilgisine referans ver. Yıllık projeksiyon verisi varsa "
+        "\"X kelimesi son 3 yılda %Y büyüyor, yıl sonu için Z bekleniyor\" gibi sayısal öngörü kullan."
     )
 
     text = generate(prompt, max_tokens=1200, json_mode=True, brand=brand)

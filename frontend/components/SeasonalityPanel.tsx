@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import { api, MonthProfile, YoYPoint, VsHistoryResponse } from "@/lib/api";
 import { YearMonthHeatmap } from "./YearMonthHeatmap";
+import { YearlyProjectionCard } from "./YearlyProjectionCard";
 import { useT } from "@/lib/i18n";
 
 const YEAR_COLORS = ["#94a3b8", "#cbd5e1", "#a78bfa", "#60a5fa", "#2563eb"];
@@ -81,6 +82,8 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
 
   return (
     <div className="space-y-6">
+      <YearlyProjectionCard keyword={keyword} />
+
       {vs && (
         <div className="card card-pad">
           <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.vsHistoryTitle(vs.target_month_name)}</h3>

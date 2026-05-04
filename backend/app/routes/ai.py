@@ -157,9 +157,18 @@ def content_ideas(body: KeywordIn, db: Annotated[Session, Depends(get_db)]):
 
 
 @router.post("/digest")
-def weekly_digest(db: Annotated[Session, Depends(get_db)]):
-    """Tüm haftalık veriyi (Trends + Search Console) sentezleyip AI özeti döndürür."""
+def weekly_digest(
+    db: Annotated[Session, Depends(get_db)],
+    period: str = "weekly",
+):
+    """Tüm veriyi (Trends + Search Console) sentezleyip AI özeti döndürür.
+
+    period: daily | weekly | monthly | yearly — zaman kapsamını ayarlar.
+            yearly periyodunda yıllık projeksiyon verisi de eklenir.
+    """
     _ensure_ai()
+    if period not in ("daily", "weekly", "monthly", "yearly"):
+        raise HTTPException(status_code=400, detail="invalid period")
 
     top = [_score_dict(s) for s in analytics.top_trending(db, limit=10)]
     rising = [_score_dict(s) for s in analytics.top_rising(db, limit=10)]
@@ -169,7 +178,6 @@ def weekly_digest(db: Annotated[Session, Depends(get_db)]):
     if not top:
         raise HTTPException(status_code=404, detail="Henüz veri yok — önce toplama yap")
 
-    # GSC verisi varsa AI'a ekle
     sc_summary = None
     if sc_module.has_data(db):
         sc_summary = {
@@ -179,12 +187,31 @@ def weekly_digest(db: Annotated[Session, Depends(get_db)]):
             "movers": sc_module.movers(db, limit=8),
         }
 
+    # Yıllık periyot için projeksiyon verisi ekle (top 8 keyword için)
+    projections = None
+    if period == "yearly":
+        from .. import seasonality as _seas
+        if _seas.has_historical_data(db):
+            projs = []
+            for s in top[:8]:
+                p = _seas.yearly_projection(db, s["keyword"])
+                if p and not p.get("insufficient_data"):
+                    projs.append(p)
+            if projs:
+                projections = projs
+
     brand = app_settings.brand_context(db)
     try:
-        result = ai_module.weekly_digest(top, rising, hot, opps, sc_summary=sc_summary, brand=brand)
+        result = ai_module.weekly_digest(
+            top, rising, hot, opps,
+            sc_summary=sc_summary, brand=brand,
+            period=period, projections=projections,
+        )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI çağrısı başarısız: {e}")
     result["has_sc_data"] = sc_summary is not None
+    result["period"] = period
+    result["has_projections"] = bool(projections)
     return result
 
 
