@@ -44,6 +44,13 @@ def _full_refresh(force: bool = False):
     except Exception as e:
         logger.exception("[refresh-all] pytrends failed: %s", e)
 
+    # Tarihsel veri (5 yıllık) — haftalık granülarite, 7 günden eskiyse otomatik tazele
+    try:
+        hist_result = collector.collect_historical_all(force=force, fresh_window_days=7)
+        logger.info("[refresh-all] historical: %s", hist_result)
+    except Exception as e:
+        logger.warning("[refresh-all] historical fetch failed: %s", e)
+
     db = SessionLocal()
     try:
         n = analytics.recompute_all_scores(db)

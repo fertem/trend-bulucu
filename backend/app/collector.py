@@ -309,7 +309,25 @@ def expand_dynamic_keywords(db: Session, parent: str, related_payload: dict, max
 
 
 def fetch_historical(client: TrendReq, keyword: str) -> pd.DataFrame:
-    """5 yıllık haftalık veri (today 5-y)."""
+    """5 yıllık haftalık veri (today 5-y).
+
+    Routing:
+      1. SerpAPI (varsa) — güvenilir, rate-limit'siz
+      2. Pytrends — fallback
+    """
+    # SerpAPI → en güvenilir
+    from . import serpapi_collector
+    if serpapi_collector.is_available():
+        # SerpAPI client'ı kendi içinde kuruyor, geçici olarak timeframe'i 5y yap
+        original = settings.pytrends_timeframe
+        settings.pytrends_timeframe = "today 5-y"
+        try:
+            r = serpapi_collector.fetch_keyword(client, keyword, fetch_related=False)
+            return r.get("interest_over_time", pd.DataFrame())
+        finally:
+            settings.pytrends_timeframe = original
+
+    # Pytrends fallback (rate-limit risk)
     client.build_payload(
         kw_list=[keyword],
         cat=0,
@@ -347,8 +365,16 @@ def save_historical(db: Session, keyword: str, df: pd.DataFrame) -> int:
     return saved
 
 
-def collect_historical_all() -> dict:
-    """Tüm aktif kelimeler için 5 yıllık veriyi çek (tek seferlik, ~3-5 dk)."""
+def collect_historical_all(*, force: bool = False, fresh_window_days: int = 7) -> dict:
+    """Tüm aktif kelimeler için 5 yıllık veriyi çek.
+
+    Args:
+      force: True → tüm keyword'leri zorla yenile
+      fresh_window_days: Bu süre içinde toplanmış olanları atla (default 7 gün).
+
+    Tarihsel veri haftalık granülarite olduğu için 7 gün taze sayılır. Tüm
+    keyword için 5y veriyi her gün çekmek anlamsız (haftalık değişiyor).
+    """
     db: Session = SessionLocal()
     run = HistoricalRun(started_at=datetime.utcnow())
     db.add(run)
@@ -357,9 +383,46 @@ def collect_historical_all() -> dict:
 
     try:
         active = db.query(Keyword).filter(Keyword.is_active == True).all()
-        keywords = [k.keyword for k in active]
+
+        # Hangi keyword'ler tarihsel veriye sahip ve güncel?
+        skipped_fresh = 0
+        if force:
+            keywords = [k.keyword for k in active]
+            logger.info("[hist] force=True — %d keyword zorla yenilenecek", len(keywords))
+        else:
+            cutoff = datetime.utcnow() - timedelta(days=fresh_window_days)
+            keywords = []
+            for k in active:
+                # En son tarihsel veri noktası — son hafta?
+                latest = (
+                    db.query(HistoricalPoint.week_date)
+                    .filter(HistoricalPoint.keyword == k.keyword)
+                    .order_by(HistoricalPoint.week_date.desc())
+                    .first()
+                )
+                if latest and latest[0] and latest[0] > cutoff:
+                    skipped_fresh += 1
+                else:
+                    keywords.append(k.keyword)
+            if skipped_fresh:
+                logger.info(
+                    "[hist] %d keyword tarihsel verisi zaten taze (%dg içinde), atlandı; %d yeni",
+                    skipped_fresh, fresh_window_days, len(keywords),
+                )
+
         run.keywords_attempted = len(keywords)
         db.commit()
+
+        if not keywords:
+            run.keywords_succeeded = 0
+            run.keywords_failed = 0
+            run.finished_at = datetime.utcnow()
+            run.status = "success"
+            run.error = f"Tüm tarihsel veri zaten taze ({fresh_window_days}g içinde)"
+            db.commit()
+            return {"run_id": run.id, "skipped_fresh": skipped_fresh, "attempted": 0,
+                    "succeeded": 0, "failed": 0, "status": "success",
+                    "message": run.error}
 
         client = _new_client()
         succeeded, failed = 0, 0
@@ -368,14 +431,20 @@ def collect_historical_all() -> dict:
             try:
                 df = _backoff_call(fetch_historical, client, kw)
                 n = save_historical(db, kw, df)
+                # last_collected_at güncellenebilir ama HistoricalPoint zaten kayıt
                 succeeded += 1
                 logger.info("[hist %d/%d] OK: %s (%d nokta)", idx + 1, len(keywords), kw, n)
             except Exception as e:
                 failed += 1
                 logger.error("[hist %d/%d] FAIL: %s — %s", idx + 1, len(keywords), kw, e)
 
+            # Live progress
+            run.keywords_succeeded = succeeded
+            run.keywords_failed = failed
+            db.commit()
+
             if idx < len(keywords) - 1:
-                time.sleep(settings.request_delay_seconds + 1)  # historical biraz daha yavaş
+                time.sleep(settings.request_delay_seconds + 1)
 
         run.keywords_succeeded = succeeded
         run.keywords_failed = failed
@@ -387,6 +456,7 @@ def collect_historical_all() -> dict:
             "attempted": run.keywords_attempted,
             "succeeded": succeeded,
             "failed": failed,
+            "skipped_fresh": skipped_fresh,
             "status": run.status,
         }
     except Exception as e:
