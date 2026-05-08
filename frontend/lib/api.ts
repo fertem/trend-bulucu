@@ -121,7 +121,7 @@ export const api = {
     request<{ status: string; message: string }>("/api/system/refresh-all", { method: "POST" }),
   systemSetupStatus: () => request<SetupStatus>("/api/system/setup-status"),
   systemCurrentRun: () => request<CurrentRunResponse>("/api/admin/current-run"),
-  testApiKey: (provider: "anthropic" | "openai" | "google_ads" | "search_console") =>
+  testApiKey: (provider: "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify") =>
     request<{ ok: boolean; message: string; detail?: string }>(
       "/api/settings/test-key",
       { method: "POST", body: JSON.stringify({ provider }) },

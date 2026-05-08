@@ -22,6 +22,7 @@ ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 # .env'de UI'dan değiştirilebilen anahtarlar
 ENV_EDITABLE_KEYS = {
     "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AI_PROVIDER",
+    "SERPAPI_KEY", "APIFY_API_TOKEN",
     "GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET",
     "GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CUSTOMER_ID",
     "GOOGLE_ADS_LOGIN_CUSTOMER_ID", "GOOGLE_ADS_API_VERSION",
@@ -36,6 +37,7 @@ ENV_EDITABLE_KEYS = {
 # Maskelenecek hassas anahtarlar
 SENSITIVE_KEYS = {
     "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
+    "SERPAPI_KEY", "APIFY_API_TOKEN",
     "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_DEVELOPER_TOKEN",
     "GOOGLE_ADS_REFRESH_TOKEN",
     "ADMIN_PASSWORD", "JWT_SECRET",
@@ -273,6 +275,14 @@ def test_api_key(body: TestKeyIn):
             elif "quota" in msg.lower() or "billing" in msg.lower():
                 hint = " — Kota/billing sorunu"
             return {"ok": False, "message": "OpenAI test başarısız", "detail": msg + hint}
+
+    if provider == "serpapi":
+        from .. import serpapi_collector
+        return serpapi_collector.test_connection()
+
+    if provider == "apify":
+        from .. import apify_collector
+        return apify_collector.test_connection()
 
     if provider == "google_ads":
         if not env_settings.has_google_ads:

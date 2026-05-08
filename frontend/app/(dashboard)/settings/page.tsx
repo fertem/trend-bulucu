@@ -145,6 +145,11 @@ function APITab() {
       hint: t.settings.api.groups.aiHint,
     },
     {
+      title: "🔍 Trend Veri Kaynağı (Pytrends fallback)",
+      keys: ["SERPAPI_KEY", "APIFY_API_TOKEN"],
+      hint: "Pytrends rate-limit yiyince yedek olarak kullanılır. Öncelik: SerpAPI > Apify > Pytrends. SerpAPI free 250/ay, Apify $5 free credit. Boş bırakılırsa sadece Pytrends kullanılır (rate-limit'li).",
+    },
+    {
       title: t.settings.api.groups.ads,
       keys: [
         "GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET",
@@ -228,9 +233,11 @@ function APITab() {
 }
 
 // Env key → which provider's test endpoint to use (null = no test available)
-const TEST_PROVIDER_FOR: Record<string, "anthropic" | "openai" | "google_ads" | "search_console" | null> = {
+const TEST_PROVIDER_FOR: Record<string, "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify" | null> = {
   ANTHROPIC_API_KEY: "anthropic",
   OPENAI_API_KEY: "openai",
+  SERPAPI_KEY: "serpapi",
+  APIFY_API_TOKEN: "apify",
   GOOGLE_ADS_DEVELOPER_TOKEN: "google_ads",
   SEARCH_CONSOLE_SITE_URL: "search_console",
 };
@@ -859,7 +866,7 @@ function HealthCard({ onJump }: { onJump: (tab: Tab) => void }) {
   );
 }
 
-function TestKeyButton({ provider }: { provider: "anthropic" | "openai" | "google_ads" | "search_console" }) {
+function TestKeyButton({ provider }: { provider: "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify" }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string; detail?: string } | null>(null);

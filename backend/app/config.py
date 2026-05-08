@@ -38,9 +38,13 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     ai_provider: str = "anthropic"
 
+    # SerpAPI — Pytrends'in en güvenilir alternatifi (free 250/ay)
+    # https://serpapi.com/google-trends-api
+    # Routing önceliği: SerpAPI → Apify → Pytrends
+    serpapi_key: str = ""
+
     # Apify — Pytrends fallback (rate-limit'siz Google Trends scraping)
     # https://apify.com/apify/google-trends-scraper
-    # Token varsa otomatik tercih edilir, yoksa pytrends'e düşer
     apify_api_token: str = ""
 
     google_ads_client_id: str = ""
