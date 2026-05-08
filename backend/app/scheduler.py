@@ -57,6 +57,11 @@ def start_scheduler() -> BackgroundScheduler:
         replace_existing=True,
         max_instances=1,
         coalesce=True,
+        # Backend her başladığında "kaçırılmış" job'u hemen TETİKLEMESİN.
+        # APScheduler default: misfire_grace_time=1 sn → cron tam zamanından
+        # 1 sn'den fazla geçmişse atlar. Restart'ta otomatik tetiklenme olmaz.
+        # (None = "her zaman çalıştır" — istemiyoruz, override ediyoruz.)
+        misfire_grace_time=1,
     )
     sched.start()
     _scheduler = sched

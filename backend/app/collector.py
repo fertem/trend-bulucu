@@ -54,18 +54,23 @@ def _is_rate_limit(exc: Exception) -> bool:
 
 
 def get_cooldown_status() -> dict:
-    """Check if a recent run failed with rate-limit; return remaining cooldown."""
+    """Check if THE most recent run was rate-limited within RATE_LIMIT_COOLDOWN.
+
+    Bug fix: önceden 'en son rate_limited run' aranıyordu — eğer o run'dan
+    sonra başarılı bir run yapıldıysa bile cooldown aktif görünüyordu.
+    Şimdi: en son run'a bak, rate-limit'liyse VE cooldown süresi içindeyse blokla.
+    """
     db = SessionLocal()
     try:
         last = (
             db.query(CollectionRun)
-            .filter(CollectionRun.status.in_(["failed", "rate_limited"]))
             .order_by(CollectionRun.id.desc())
             .first()
         )
-        if not last or not last.error:
+        if not last:
             return {"blocked": False}
-        if "rate" not in (last.error or "").lower() and "/sorry/" not in (last.error or "").lower():
+        # Sadece son run rate_limited statüsünde ise (failed bile yetmez)
+        if last.status != "rate_limited":
             return {"blocked": False}
         ended = last.finished_at or last.started_at
         if not ended:
@@ -86,14 +91,71 @@ def get_cooldown_status() -> dict:
         db.close()
 
 
+# Browser-like User-Agent — pytrends'in default'u sadece accept-language
+# gönderiyor, Google bunu bot olarak algılayıp 429 yapıyordu.
+_BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/131.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Dest": "document",
+}
+
+
+def _warm_up_cookies() -> dict[str, str]:
+    """trends.google.com homepage'i ziyaret edip NID cookie al.
+
+    Pytrends 4.9.2 doğrudan API'ye gidiyor, browser warm-up yapmıyor.
+    Google bunu bot olarak algılayıp her isteğe 429 dönüyor. Önce homepage'i
+    ziyaret ederek gerçek bir kullanıcı oturumu başlatıyoruz, sonra elde
+    ettiğimiz NID cookie'yi pytrends session'ına enjekte ediyoruz.
+    """
+    import httpx
+    geo = settings.pytrends_geo or "TR"
+    hl = (settings.pytrends_hl or "tr-TR").split("-")[0]
+    try:
+        with httpx.Client(headers=_BROWSER_HEADERS, timeout=10.0, follow_redirects=True) as client:
+            r = client.get(f"https://trends.google.com/?geo={geo}&hl={hl}")
+            if r.status_code != 200:
+                logger.warning("[warm-up] homepage status %d — cookie alamadık", r.status_code)
+                return {}
+            cookies = {k: v for k, v in client.cookies.items()}
+            logger.info("[warm-up] cookies: %s", list(cookies.keys()))
+            return cookies
+    except Exception as e:
+        logger.warning("[warm-up] başarısız: %s", e)
+        return {}
+
+
 def _new_client() -> TrendReq:
-    return TrendReq(
+    """Pytrends client + browser-like UA + warm-up cookies (NID).
+
+    Önce trends.google.com homepage'i ziyaret edip NID cookie alıyoruz,
+    sonra pytrends client'ı bu cookie'lerle başlatıyoruz. Bu olmadan
+    Google direkt 429 dönüyor.
+    """
+    cookies = _warm_up_cookies()
+    client = TrendReq(
         hl=settings.pytrends_hl,
         tz=180,  # Turkey is UTC+3 (180 minutes)
         timeout=(10, 30),
         retries=2,
         backoff_factor=0.5,
+        requests_args={"headers": _BROWSER_HEADERS},
     )
+    # NID cookie'yi pytrends'in session'ına enjekte et
+    if cookies:
+        try:
+            client.cookies = cookies
+        except Exception as e:
+            logger.warning("[warm-up] cookie enjekte hatası: %s", e)
+    return client
 
 
 def ensure_seed_keywords(db: Session) -> None:
