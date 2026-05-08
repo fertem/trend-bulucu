@@ -10,12 +10,21 @@ Open-source SEO + content intelligence dashboard combining **Google Trends + Sea
 
 ### What it does
 
-- **Google Trends** — daily Pytrends collection, 5y historical, seasonality (12 × 5 heatmap), anomaly detection, 30-day forecast
-- **Search Console** — real position, CTR, clicks for the last 28 days; finds title-improvement opportunities, page-2 keywords, position movers
-- **Google Ads (Keyword Planner)** — real monthly volume, competition, CPC ranges
-- **AI (Anthropic Claude or OpenAI)** — search intent, keyword difficulty (KD), People Also Ask, full article writer (markdown + social media), SEO scorecard, internal-link suggestions, streaming chat with your data, deep keyword analysis, weekly digest
+- **Google Trends** — multi-provider routing (SerpAPI → Apify → Pytrends), daily collection, 5y historical, seasonality (12 × 5 heatmap), anomaly detection, 30-day forecast, yearly projection (CAGR + linear regression)
+- **Search Console** — real position, CTR, clicks for the last 28 days; finds title-improvement opportunities, page-2 keywords, position movers, cannibalization detection
+- **Google Ads (Keyword Planner)** — real monthly volume, competition, CPC ranges (optional)
+- **AI (Anthropic Claude or OpenAI)** — search intent, keyword difficulty (KD), People Also Ask, full article writer (markdown + social media), SEO scorecard, internal-link suggestions, streaming chat with your data, deep keyword analysis, 4-period digest (daily/weekly/monthly/yearly)
 - **Content gaps** — scans your site's local source, finds trending queries you haven't covered, one-click AI-generated post + WordPress/Ghost publish
 - **Brand-aware** — onboarding wizard derives industry, categories and seed keywords from your brand description; all AI prompts use brand context
+- **Resilient by design** — resume-from-where-it-stopped (skips fresh-window keywords automatically), inline OAuth for GSC + Ads (no terminal), self-update from UI (git pull + deps install), 3-level reset
+
+### Trend data providers (in routing order)
+
+| Provider | Cost | Reliability | When to use |
+|---|---|---|---|
+| **SerpAPI** | 250 free/mo, $50/mo for 5K | ✅ Highest — paid proxy backend | Recommended primary |
+| **Apify Google Trends** | $5 free credit/mo | ⚠️ Variable — puppeteer can hang | Fallback |
+| **Pytrends** | Free | ⚠️ Frequent rate limits | Last resort, has built-in cooldown |
 
 ### Quick install
 
@@ -67,12 +76,15 @@ chmod +x install.sh start.sh stop.sh
 
 ### 🎯 Özellikler
 
-#### 📊 Trend Takibi
-- Pytrends ile günlük otomatik veri toplama (TR / US / GB / DE / FR / global)
+#### 📊 Trend Takibi (3 sağlayıcı, otomatik fallback)
+- **Çoklu sağlayıcı routing**: SerpAPI (250 free/ay) → Apify ($5 free credit) → Pytrends (free, rate-limited)
+- Günlük otomatik veri toplama (TR / US / GB / DE / FR / global)
 - 5 yıllık tarihsel veri + mevsimsellik analizi (12 ay × 5 yıl heatmap)
+- **Yıllık projeksiyon** — CAGR + lineer regresyon ile gelecek yıl tahmini (±RMSE bandı)
 - Anomali tespiti, hot uyarılar, fırsat skorlama
 - Pattern correlation (X yükselince Y de yükseliyor)
 - 30 günlük tahmin (mevsimsellik + trend kombine)
+- **"Kaldığı yerden devam"** — rate-limit yiyince yarıda kalsa bile, tekrar tetiklendiğinde sadece eksik kelimeler tazelenir
 
 #### 🔍 Search Console (gerçek SEO)
 - Son 28 gün gerçek pozisyon, CTR, tıklama, gösterim
