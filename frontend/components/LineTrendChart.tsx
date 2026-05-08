@@ -3,6 +3,7 @@
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend,
 } from "recharts";
+import { parseBackendDate } from "@/lib/format";
 
 type Point = {
   date: string;
@@ -46,11 +47,11 @@ export function LineTrendChart({
 
   const formatted = merged.map((p) => ({
     ...p,
-    label: new Date(p.date).toLocaleDateString("tr-TR", { month: "short", day: "numeric" }),
+    label: (parseBackendDate(p.date) ?? new Date(p.date)).toLocaleDateString("tr-TR", { month: "short", day: "numeric" }),
   }));
 
   const forecastStartLabel = fc.length > 0 && data.length > 0
-    ? new Date(data[data.length - 1].date).toLocaleDateString("tr-TR", { month: "short", day: "numeric" })
+    ? (parseBackendDate(data[data.length - 1].date) ?? new Date(data[data.length - 1].date)).toLocaleDateString("tr-TR", { month: "short", day: "numeric" })
     : null;
 
   return (

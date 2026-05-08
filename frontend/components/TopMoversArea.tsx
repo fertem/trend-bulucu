@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { api, TrendScore } from "@/lib/api";
 import { useT, useLang } from "@/lib/i18n";
+import { parseBackendDate } from "@/lib/format";
 
 const COLORS = ["#2563eb", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
 
@@ -55,7 +56,7 @@ export function TopMoversArea({ topKeywords }: { topKeywords: TrendScore[] }) {
 
   const formatted = series.map((p) => ({
     ...p,
-    label: new Date(p.date as string).toLocaleDateString(lang === "en" ? "en-US" : "tr-TR", { month: "short", day: "numeric" }),
+    label: (parseBackendDate(p.date as string) ?? new Date(p.date as string)).toLocaleDateString(lang === "en" ? "en-US" : "tr-TR", { month: "short", day: "numeric" }),
   }));
 
   return (

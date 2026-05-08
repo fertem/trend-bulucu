@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { api, SystemFreshness, CurrentRunResponse } from "@/lib/api";
-import { relativeTime } from "@/lib/format";
+import { relativeTime, parseBackendDate } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 
 type Source = {
@@ -158,7 +158,8 @@ export function FreshnessBar() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {sources.map((s) => {
-          const stale = s.value && Date.now() - new Date(s.value).getTime() > 1000 * 60 * 60 * 30;
+          const parsed = parseBackendDate(s.value);
+          const stale = parsed && Date.now() - parsed.getTime() > 1000 * 60 * 60 * 30;
           return (
             <div key={s.label}>
               <div className="text-[11px] text-ink-500">{s.label}</div>

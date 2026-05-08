@@ -7,9 +7,21 @@ export function formatVolume(n: number | null | undefined): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
+/**
+ * Backend naive UTC ISO döndürüyor (örn. "2026-05-08T12:30:00" — Z YOK).
+ * JS bunu YEREL saat sanıyor → Türkiye'de UTC+3 → her şey 3 saat eski görünüyordu.
+ * Bu helper Z suffix'i yoksa ekler ki JS UTC olarak yorumlasın.
+ */
+export function parseBackendDate(iso: string | null | undefined): Date | null {
+  if (!iso) return null;
+  const safe = /[Zz]|[+-]\d{2}:\d{2}$/.test(iso) ? iso : iso + "Z";
+  return new Date(safe);
+}
+
 export function relativeTime(iso: string | null | undefined): string {
   if (!iso) return "henüz çekilmedi";
-  const d = new Date(iso);
+  const d = parseBackendDate(iso);
+  if (!d) return "—";
   const diff = Date.now() - d.getTime();
   if (diff < 0) return d.toLocaleString("tr-TR");
 

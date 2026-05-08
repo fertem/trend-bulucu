@@ -6,6 +6,7 @@ import { api, RunItem } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { KeywordSuggester } from "@/components/KeywordSuggester";
 import { LongTailDiscovery } from "@/components/LongTailDiscovery";
+import { parseBackendDate } from "@/lib/format";
 import { useT, useLang } from "@/lib/i18n";
 
 export default function AdminPage() {
@@ -84,7 +85,10 @@ export default function AdminPage() {
     }
   };
 
-  const fmt = (s: string | null) => (s ? new Date(s).toLocaleString(lang === "en" ? "en-US" : "tr-TR") : "—");
+  const fmt = (s: string | null) => {
+    const d = parseBackendDate(s);
+    return d ? d.toLocaleString(lang === "en" ? "en-US" : "tr-TR") : "—";
+  };
 
   return (
     <div>

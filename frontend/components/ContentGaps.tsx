@@ -3,21 +3,22 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { api, ContentGap, SystemFreshness } from "@/lib/api";
-import { relativeTime } from "@/lib/format";
+import { relativeTime, parseBackendDate } from "@/lib/format";
 import { ArticleWriter } from "./ArticleWriter";
 import { useT, useLang } from "@/lib/i18n";
 
 type StatusKey = "all" | "new" | "in_progress" | "addressed" | "dismissed";
 
 function fmtDate(iso: string | null | undefined, lang: string) {
-  if (!iso) return "—";
-  const d = new Date(iso);
+  const d = parseBackendDate(iso);
+  if (!d) return "—";
   return d.toLocaleDateString(lang === "en" ? "en-US" : "tr-TR", { month: "short", day: "numeric" });
 }
 
 function daysSince(iso?: string | null): number {
-  if (!iso) return 0;
-  return Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24));
+  const d = parseBackendDate(iso);
+  if (!d) return 0;
+  return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export function ContentGapsCard() {

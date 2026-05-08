@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { api, SCQuery, SCOpportunity, SCMover, SCStatus } from "@/lib/api";
+import { parseBackendDate } from "@/lib/format";
 import { useT, useLang } from "@/lib/i18n";
 
 type Tab = "top" | "opportunities" | "page2" | "movers";
@@ -95,7 +96,7 @@ export function SearchConsoleCard() {
           <div className="text-xs font-medium text-cyan-700 uppercase tracking-wide">{t.sc.overline} · {t.sc.last28Days}</div>
           <h2 className="text-lg font-semibold text-ink-900 mt-1">{t.sc.seoPerformance}</h2>
           <p className="text-xs text-ink-500 mt-1">
-            {status.site_url} · {status.row_count} {t.sc.queries} · {t.sc.lastSync}: {status.last_sync_at ? new Date(status.last_sync_at).toLocaleString(lang === "en" ? "en-US" : "tr-TR") : "—"}
+            {status.site_url} · {status.row_count} {t.sc.queries} · {t.sc.lastSync}: {(() => { const d = parseBackendDate(status.last_sync_at); return d ? d.toLocaleString(lang === "en" ? "en-US" : "tr-TR") : "—"; })()}
           </p>
         </div>
         <button className="btn-ghost text-xs" onClick={sync} disabled={busy === "sync"}>
