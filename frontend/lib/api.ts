@@ -117,8 +117,11 @@ export const api = {
       `/api/seasonality/keyword/${encodeURIComponent(keyword)}/projection${month ? `?month=${month}` : ""}`,
     ),
   systemFreshness: () => request<SystemFreshness>("/api/system/freshness"),
-  systemRefreshAll: () =>
-    request<{ status: string; message: string }>("/api/system/refresh-all", { method: "POST" }),
+  systemRefreshAll: (force = false) =>
+    request<{ status: string; message: string; force?: boolean }>(
+      `/api/system/refresh-all${force ? "?force=true" : ""}`,
+      { method: "POST" },
+    ),
   systemSetupStatus: () => request<SetupStatus>("/api/system/setup-status"),
   systemCurrentRun: () => request<CurrentRunResponse>("/api/admin/current-run"),
   testApiKey: (provider: "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify") =>

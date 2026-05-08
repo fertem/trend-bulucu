@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/system", tags=["system"], dependencies=[Depends(require_admin)])
 
 
-def _full_refresh():
+def _full_refresh(force: bool = False):
     """Daily scheduler ile aynı pipeline — manuel tetikleme için.
 
     Pipeline (her adım kendi try/except'inde — bir adımın hatası diğerlerini durdurmaz):
@@ -39,7 +39,7 @@ def _full_refresh():
 
     logger.info("[refresh-all] starting...")
     try:
-        result = collector.collect_all()
+        result = collector.collect_all(force=force)
         logger.info("[refresh-all] pytrends: %s", result)
     except Exception as e:
         logger.exception("[refresh-all] pytrends failed: %s", e)
@@ -236,13 +236,23 @@ def setup_status(db: Annotated[Session, Depends(get_db)]):
 
 
 @router.post("/refresh-all")
-def refresh_all(bg: BackgroundTasks):
-    """Tüm veri kaynaklarını tek seferde yenile (Pytrends + skor + gap + GSC)."""
-    bg.add_task(_full_refresh)
+def refresh_all(bg: BackgroundTasks, force: bool = False):
+    """Tüm veri kaynaklarını yenile.
+
+    - Default (force=False): Son 12 saatte toplanmış kelimeleri ATLAR.
+      Pytrends rate-limit yiyip yarım kalmışsa, tekrar tetiklendiğinde
+      kaldığı yerden devam eder (taze olanları atlayıp eksiklere odaklanır).
+    - force=True: Bütün kelimeleri zorla yeniden çek (taze olsa bile).
+    """
+    bg.add_task(_full_refresh, force=force)
     return {
         "status": "queued",
-        "message": "Tüm veri kaynakları arka planda yenileniyor. ~5-10 dakika sürer. "
-                   "İlerlemeyi tazelik barından izleyebilirsin.",
+        "force": force,
+        "message": (
+            "Tüm kelimeler zorla yenileniyor (~5-10 dk)."
+            if force
+            else "Eksik / bayat kelimeler arka planda yenileniyor. Taze olanlar atlanır → kaldığı yerden devam eder."
+        ),
     }
 
 

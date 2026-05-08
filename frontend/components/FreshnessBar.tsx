@@ -53,11 +53,13 @@ export function FreshnessBar() {
     }
   }, [lastRun?.status, lastRun?.error, lastRun?.succeeded, lastRun?.attempted, t]);
 
-  const refreshAll = async () => {
+  const refreshAll = async (force = false) => {
     setRefreshing(true);
-    setMsg(t.freshness.started);
+    setMsg(force
+      ? "🔄 Tüm kelimeler zorla yenileniyor — taze olanlar da yeniden çekilecek."
+      : "▶ Eksik / bayat kelimeler tamamlanıyor. Taze olanlar atlanır (kaldığı yerden devam).");
     try {
-      await api.systemRefreshAll();
+      await api.systemRefreshAll(force);
       mutate();
       mutateRun();
     } catch (e: any) {
@@ -123,23 +125,35 @@ export function FreshnessBar() {
             </div>
           )}
         </div>
-        <button
-          className="btn-primary text-xs whitespace-nowrap"
-          onClick={refreshAll}
-          disabled={refreshing}
-        >
-          {refreshing ? (
-            <span className="flex items-center gap-1.5">
-              <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              {t.freshness.updating}
-            </span>
-          ) : (
-            t.freshness.refreshAll
+        <div className="flex items-center gap-2">
+          <button
+            className="btn-primary text-xs whitespace-nowrap"
+            onClick={() => refreshAll(false)}
+            disabled={refreshing}
+            title="Eksik / bayat kelimeler — taze olanları atlar"
+          >
+            {refreshing ? (
+              <span className="flex items-center gap-1.5">
+                <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {t.freshness.updating}
+              </span>
+            ) : (
+              t.freshness.refreshAll
+            )}
+          </button>
+          {!refreshing && (
+            <button
+              className="text-xs text-ink-500 hover:text-amber-700 underline whitespace-nowrap"
+              onClick={() => refreshAll(true)}
+              title="Tüm kelimeleri zorla yeniden çeker (taze olanları da). Daha çok API kotası harcar."
+            >
+              ↻ Zorla yenile
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

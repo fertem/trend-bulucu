@@ -399,8 +399,24 @@ def collect_historical_all() -> dict:
         db.close()
 
 
-def collect_all(extra_keywords: Iterable[str] | None = None) -> dict:
-    """Aktif tüm kelimeler için tam veri toplama döngüsü."""
+def collect_all(
+    extra_keywords: Iterable[str] | None = None,
+    *,
+    force: bool = False,
+    fresh_window_hours: float = 12.0,
+) -> dict:
+    """Aktif tüm kelimeler için tam veri toplama döngüsü.
+
+    Args:
+      force: True → tüm keyword'leri yeniden çek (taze olanları da)
+      fresh_window_hours: Bu süre içinde toplanmış keyword'ler atlanır.
+                          Default 12 saat. force=True ise yok sayılır.
+
+    Doğal "kaldığı yerden devam" davranışı:
+      - İlk çalışma: 41 keyword fresh fetch
+      - Pytrends 23. keyword'de fail → ilk 23'ün last_collected_at güncel
+      - 30 dk sonra tekrar tetiklenirse → ilk 23 atlanır (taze), kalan 18 fetch'lenir
+    """
     # Pre-flight: respect cooldown if we were recently rate-limited
     cd = get_cooldown_status()
     if cd.get("blocked"):
@@ -422,14 +438,56 @@ def collect_all(extra_keywords: Iterable[str] | None = None) -> dict:
         ensure_seed_keywords(db)
 
         active = db.query(Keyword).filter(Keyword.is_active == True).all()
-        keywords = [k.keyword for k in active]
+        all_keywords = [k.keyword for k in active]
         if extra_keywords:
             for ek in extra_keywords:
-                if ek not in keywords:
-                    keywords.append(ek)
+                if ek not in all_keywords:
+                    all_keywords.append(ek)
+
+        # Skip-fresh-window: son N saatte zaten toplanmışları atla
+        skipped_fresh = 0
+        if force:
+            keywords = all_keywords
+            logger.info("[collect] force=True — %d keyword zorla yenilenecek", len(keywords))
+        else:
+            cutoff = datetime.utcnow() - timedelta(hours=fresh_window_hours)
+            keywords = []
+            for k in active:
+                if k.last_collected_at and k.last_collected_at > cutoff:
+                    skipped_fresh += 1
+                else:
+                    keywords.append(k.keyword)
+            # extra_keywords (yeni eklenenler) hep dahil
+            if extra_keywords:
+                for ek in extra_keywords:
+                    if ek not in keywords and ek not in [k.keyword for k in active if k.last_collected_at and k.last_collected_at > cutoff]:
+                        keywords.append(ek)
+            if skipped_fresh:
+                logger.info(
+                    "[collect] %d keyword zaten taze (%dh içinde), atlandı; %d yeni fetch'lenecek",
+                    skipped_fresh, fresh_window_hours, len(keywords),
+                )
 
         run.keywords_attempted = len(keywords)
         db.commit()
+
+        # Hiç fetch'lenecek keyword yoksa (hepsi taze) — direkt başarılı dön
+        if not keywords:
+            run.keywords_succeeded = 0
+            run.keywords_failed = 0
+            run.finished_at = datetime.utcnow()
+            run.status = "success"
+            run.error = f"Tüm kelimeler zaten taze ({fresh_window_hours}h içinde toplanmış). Force ile zorla yenileyebilirsin."
+            db.commit()
+            return {
+                "run_id": run.id,
+                "attempted": 0,
+                "succeeded": 0,
+                "failed": 0,
+                "skipped_fresh": skipped_fresh,
+                "status": "success",
+                "message": run.error,
+            }
 
         client = _new_client()
         succeeded, failed = 0, 0
@@ -502,6 +560,7 @@ def collect_all(extra_keywords: Iterable[str] | None = None) -> dict:
             "attempted": run.keywords_attempted,
             "succeeded": succeeded,
             "failed": failed,
+            "skipped_fresh": skipped_fresh,
             "status": run.status,
         }
     except Exception as e:
