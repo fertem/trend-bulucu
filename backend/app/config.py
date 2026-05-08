@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     ai_provider: str = "anthropic"
 
+    # Apify — Pytrends fallback (rate-limit'siz Google Trends scraping)
+    # https://apify.com/apify/google-trends-scraper
+    # Token varsa otomatik tercih edilir, yoksa pytrends'e düşer
+    apify_api_token: str = ""
+
     google_ads_client_id: str = ""
     google_ads_client_secret: str = ""
     google_ads_developer_token: str = ""

@@ -188,7 +188,17 @@ def _backoff_call(fn, *args, **kwargs):
 
 
 def fetch_keyword(client: TrendReq, keyword: str) -> dict:
-    """Tek kelime için interest_over_time + related_queries döndürür."""
+    """Tek kelime için interest_over_time + related_queries döndürür.
+
+    Apify token varsa Apify kullanır (rate-limit'siz). Yoksa pytrends'e
+    düşer (rate-limit'li, ama bedava).
+    """
+    # Apify routing — token varsa Apify'ı tercih et
+    from . import apify_collector
+    if apify_collector.is_available():
+        return apify_collector.fetch_keyword(client, keyword)
+
+    # Pytrends fallback (legacy, rate-limited)
     client.build_payload(
         kw_list=[keyword],
         cat=0,
