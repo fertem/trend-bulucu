@@ -87,10 +87,15 @@ if exist .env (
     REM Random JWT secret uret
     for /f %%i in ('python -c "import secrets; print(secrets.token_hex(32))"') do set JWT_SECRET=%%i
 
-    REM Admin sifresi al
+    REM Admin sifresi al — bos olamaz
     echo.
-    set /p ADMIN_PWD="Admin sifresi belirleyin (panele giris icin): "
-    if "!ADMIN_PWD!"=="" set ADMIN_PWD=admin
+    :ASK_PWD
+    set "ADMIN_PWD="
+    set /p ADMIN_PWD="Admin sifresi belirleyin (panele giris icin, bos olamaz): "
+    if "!ADMIN_PWD!"=="" (
+        echo   Sifre bos olamaz, lutfen bir sifre girin.
+        goto ASK_PWD
+    )
 
     REM .env.example'i kopyala ve degerleri yaz
     copy .env.example .env >nul

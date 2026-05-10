@@ -62,10 +62,13 @@ if [ -f ".env" ]; then
 else
     JWT_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
     echo ""
-    read -p "Admin şifresi belirleyin (panele giriş için): " ADMIN_PWD
-    if [ -z "$ADMIN_PWD" ]; then
-        ADMIN_PWD="admin"
-    fi
+    while true; do
+        read -p "Admin şifresi belirleyin (panele giriş için, boş olamaz): " ADMIN_PWD
+        if [ -n "$ADMIN_PWD" ]; then
+            break
+        fi
+        echo "  Şifre boş olamaz, lütfen bir şifre girin."
+    done
 
     cp .env.example .env
     # sed ile değerleri değiştir (BSD/GNU uyumlu)

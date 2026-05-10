@@ -83,6 +83,13 @@ class Settings(BaseSettings):
 settings = Settings()
 (BASE_DIR / "data").mkdir(exist_ok=True)
 
+if settings.jwt_secret in ("change-me", "", "your-secret-here"):
+    raise RuntimeError(
+        "JWT_SECRET .env dosyasında ayarlanmamış (hâlâ 'change-me' default'unda). "
+        "install.bat / install.sh çalıştırın veya backend/.env içine güçlü bir "
+        "rastgele değer yazın: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
+
 
 def reload_settings() -> dict[str, str]:
     """`.env` dosyasını yeniden oku ve mevcut `settings` nesnesini güncelle.
