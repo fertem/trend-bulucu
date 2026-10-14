@@ -78,6 +78,9 @@ export const Icon = {
   Trend: (p: P) => (
     <svg {...base(p)}><path d="M3 17l5-5 4 4 9-9" /><path d="M14 7h7v7" /></svg>
   ),
+  Calendar: (p: P) => (
+    <svg {...base(p)}><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M8 2v4M16 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" /></svg>
+  ),
   Sun: (p: P) => (
     <svg {...base(p)}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
   ),

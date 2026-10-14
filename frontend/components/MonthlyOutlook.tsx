@@ -88,6 +88,7 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
               </option>
             ))}
           </select>
+          <Link href="/calendar" className="btn-ghost btn-sm whitespace-nowrap">{t.calendar.openCalendar}</Link>
           {hasAi && (
             <button className="btn-ghost text-xs whitespace-nowrap" onClick={generateAI} disabled={aiLoading}>
               {aiLoading ? t.monthlyOutlook.aiPreparing : aiData ? t.monthlyOutlook.aiRefresh : t.monthlyOutlook.aiPredict}

@@ -25,6 +25,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         { href: "/opportunities", label: t.nav.opportunities, icon: Icon.Opportunity },
         { href: "/categories", label: t.nav.categories, icon: Icon.Category },
         { href: "/alerts", label: t.nav.alerts, icon: Icon.Alert },
+        { href: "/calendar", label: t.nav.calendar, icon: Icon.Calendar },
       ],
     },
     {

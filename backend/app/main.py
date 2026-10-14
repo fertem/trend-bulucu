@@ -24,6 +24,7 @@ from .routes import settings as settings_routes
 from .routes import publish as publish_routes
 from .routes import insights as insights_routes
 from .routes import alerts as alerts_routes
+from .routes import calendar as calendar_routes
 
 
 logging.basicConfig(
@@ -80,6 +81,7 @@ app.include_router(settings_routes.router)
 app.include_router(publish_routes.router)
 app.include_router(insights_routes.router)
 app.include_router(alerts_routes.router)
+app.include_router(calendar_routes.router)
 
 
 @app.get("/api/health")

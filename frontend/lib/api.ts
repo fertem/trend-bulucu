@@ -409,6 +409,36 @@ export const api = {
     request<{ removed: boolean }>(`/api/admin/keywords/${encodeURIComponent(kw)}`, { method: "DELETE" }),
 };
 
+// ── Mevsimsel yayın takvimi ───────────────────────────────────────────────
+export type CalendarItem = {
+  keyword: string;
+  category: string | null;
+  peak_month: number;
+  peak_lift_pct: number;
+  primary: boolean;
+  peak_date: string;
+  publish_by: string;
+  late: boolean;
+  days_left: number;
+  action: "write" | "refresh";
+  coverage_score: number | null;
+  best_match_slug: string | null;
+  score: number | null;
+  low_month: number;
+  years: number;
+};
+export type CalendarMonth = { year: number; month: number; is_current: boolean; items: CalendarItem[] };
+export type CalendarResponse = {
+  today: string;
+  lead_days: number;
+  min_peak_lift: number;
+  months: CalendarMonth[];
+  total_items: number;
+  seasonal_keywords: number;
+  historical_keywords: number;
+  site_scanned: boolean;
+};
+
 // ── Akıllı uyarılar ───────────────────────────────────────────────────────
 export type AlertType = "hot" | "falling" | "spike" | "seasonal_peak_ahead" | "sc_drop";
 export type AlertSeverity = "critical" | "warn" | "info";
