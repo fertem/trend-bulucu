@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonTable } from "@/components/ui/Skeleton";
 import { useState } from "react";
 import useSWR from "swr";
 import { api, TopicCluster, AuthorityScore, CannibalItem } from "@/lib/api";
@@ -106,7 +107,7 @@ function AuthorityTab() {
   const t = useT();
   const { data } = useSWR<{ clusters: AuthorityScore[]; message?: string }>("/api/ai/topic-authority", api.fetcher);
 
-  if (!data) return <div className="text-sm text-ink-500">{t.common.loading}</div>;
+  if (!data) return <div className="card card-pad"><SkeletonTable rows={5} cols={4} /></div>;
   if (data.message) return <div className="card card-pad text-sm text-ink-500">{data.message}</div>;
 
   const verdictColor = (v: string) => v === "strong" ? "text-emerald-700" : v === "medium" ? "text-amber-700" : "text-red-600";
@@ -148,7 +149,7 @@ function CannibalTab() {
   const t = useT();
   const { data } = useSWR<{ items: CannibalItem[]; message?: string }>("/api/ai/cannibalization", api.fetcher);
 
-  if (!data) return <div className="text-sm text-ink-500">{t.common.loading}</div>;
+  if (!data) return <div className="card card-pad"><SkeletonTable rows={5} cols={4} /></div>;
   if (data.message) return <div className="card card-pad text-sm text-ink-500">{data.message}</div>;
 
   const items = data.items || [];

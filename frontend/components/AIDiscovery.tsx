@@ -89,7 +89,7 @@ export function AIDiscovery({ hasAi }: { hasAi: boolean }) {
       )}
 
       {items && items.length > 0 && (
-        <div className="overflow-x-auto">
+        <div className="table-wrap">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-ink-500">

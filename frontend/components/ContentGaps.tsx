@@ -1,5 +1,7 @@
 "use client";
 
+import { SkeletonTable } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import useSWR from "swr";
 import { api, ContentGap, SystemFreshness } from "@/lib/api";
@@ -173,15 +175,13 @@ export function ContentGapsCard() {
         })}
       </div>
 
-      {!gaps && <div className="text-sm text-ink-500">{t.common.loading}</div>}
+      {!gaps && <SkeletonTable rows={4} cols={5} />}
       {gaps && gaps.length === 0 && (
-        <div className="text-sm text-ink-500 py-6 text-center">
-          {t.contentGaps.emptyForStatus}
-        </div>
+        <EmptyState compact title={t.contentGaps.emptyForStatus} />
       )}
 
       {gaps && gaps.length > 0 && (
-        <div className="overflow-x-auto">
+        <div className="table-wrap">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-ink-500">

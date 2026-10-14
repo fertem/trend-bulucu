@@ -1,5 +1,7 @@
 "use client";
 
+import { SkeletonCard } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import useSWR from "swr";
 import Link from "next/link";
 import { api, TrendScore } from "@/lib/api";
@@ -18,11 +20,11 @@ export default function OpportunitiesPage() {
         subtitle={t.opportunities.subtitle}
       />
 
-      {isLoading && <div className="text-sm text-ink-500">{t.common.loading}</div>}
+      {isLoading && <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><SkeletonCard lines={4} /><SkeletonCard lines={4} /><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}
       {error && <div className="text-sm text-red-600">{t.common.error}: {String((error as any).message || error)}</div>}
 
       {data && data.length === 0 && (
-        <div className="text-sm text-ink-500">{t.opportunities.noScore}</div>
+        <section className="card"><EmptyState title={t.opportunities.noScore} action={{ label: t.nav.admin, href: "/admin" }} /></section>
       )}
 
       {data && data.length > 0 && (

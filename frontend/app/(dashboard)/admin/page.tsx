@@ -8,6 +8,7 @@ import { KeywordSuggester } from "@/components/KeywordSuggester";
 import { LongTailDiscovery } from "@/components/LongTailDiscovery";
 import { parseBackendDate } from "@/lib/format";
 import { useT, useLang } from "@/lib/i18n";
+import { useToast } from "@/components/ui/Toast";
 
 export default function AdminPage() {
   const t = useT();
@@ -21,17 +22,16 @@ export default function AdminPage() {
   const { data: adsStatus } = useSWR<{ configured: boolean }>("/api/admin/ads-status", api.fetcher);
   const { data: histStatus, mutate: mutateHist } = useSWR<{ has_data: boolean }>("/api/seasonality/status", api.fetcher);
   const [busy, setBusy] = useState<"collect" | "score" | "volumes" | "historical" | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
+  const toast = useToast();
 
   const triggerCollect = async () => {
     setBusy("collect");
-    setMsg(null);
     try {
       const r = await api.triggerCollect();
-      setMsg(r.message);
+      toast.info(r.message);
       setTimeout(() => mutate(), 2000);
     } catch (e: any) {
-      setMsg(`${t.common.error}: ${e.message}`);
+      toast.error(t.common.error, e.message);
     } finally {
       setBusy(null);
     }
@@ -39,12 +39,11 @@ export default function AdminPage() {
 
   const recompute = async () => {
     setBusy("score");
-    setMsg(null);
     try {
       const r = await api.recomputeScores();
-      setMsg(t.admin.msgRecomputed(r.recomputed));
+      toast.success(t.admin.msgRecomputed(r.recomputed));
     } catch (e: any) {
-      setMsg(`${t.common.error}: ${e.message}`);
+      toast.error(t.common.error, e.message);
     } finally {
       setBusy(null);
     }
@@ -52,13 +51,12 @@ export default function AdminPage() {
 
   const collectHistorical = async () => {
     setBusy("historical");
-    setMsg(null);
     try {
       const r = await api.collectHistorical();
-      setMsg(r.message);
+      toast.info(r.message);
       setTimeout(() => mutateHist(), 60_000);
     } catch (e: any) {
-      setMsg(`${t.common.error}: ${e.message}`);
+      toast.error(t.common.error, e.message);
     } finally {
       setBusy(null);
     }
@@ -66,20 +64,19 @@ export default function AdminPage() {
 
   const refreshVolumes = async (force = false) => {
     setBusy("volumes");
-    setMsg(null);
     try {
       const r = await api.refreshVolumes(force);
       if (r.status === "ok") {
-        setMsg(t.admin.msgVolumes(r.updated ?? 0));
+        toast.success(t.admin.msgVolumes(r.updated ?? 0));
       } else if (r.status === "fresh") {
-        setMsg(t.admin.msgFresh);
+        toast.info(t.admin.msgFresh);
       } else if (r.status === "disabled") {
-        setMsg(t.admin.msgAdsDisabled);
+        toast.warning(t.admin.msgAdsDisabled);
       } else if (r.status === "error") {
-        setMsg(`${t.common.error}: ${r.error}`);
+        toast.error(t.common.error, r.error);
       }
     } catch (e: any) {
-      setMsg(`${t.common.error}: ${e.message}`);
+      toast.error(t.common.error, e.message);
     } finally {
       setBusy(null);
     }
@@ -139,7 +136,6 @@ export default function AdminPage() {
                 : t.admin.fetchHistoricalNew}
           </button>
         </div>
-        {msg && <div className="text-sm text-ink-700 mt-3">{msg}</div>}
         <p className="text-xs text-ink-500 mt-4">{t.admin.operationsHint}</p>
       </div>
 
@@ -148,7 +144,7 @@ export default function AdminPage() {
         {!runs || runs.length === 0 ? (
           <div className="text-sm text-ink-500">{t.admin.noRuns}</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-wrap">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-ink-500">

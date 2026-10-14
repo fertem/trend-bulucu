@@ -23,7 +23,7 @@ export function TrendTable({
   const hasVolume = rows.some((r) => typeof r.volume_monthly === "number");
 
   return (
-    <div className="overflow-x-auto">
+    <div className="table-wrap">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-ink-500">

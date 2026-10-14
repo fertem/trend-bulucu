@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import useSWR from "swr";
 import { api, TrendScore } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
@@ -17,7 +18,7 @@ export default function AlertsPage() {
         subtitle={t.alerts.subtitle}
       />
 
-      {isLoading && <div className="text-sm text-ink-500">{t.common.loading}</div>}
+      {isLoading && <SkeletonCard lines={6} />}
       {error && <div className="text-sm text-red-600">{t.common.error}: {String((error as any).message || error)}</div>}
 
       {data && (

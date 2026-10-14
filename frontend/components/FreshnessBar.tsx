@@ -5,6 +5,8 @@ import useSWR from "swr";
 import { api, SystemFreshness, CurrentRunResponse } from "@/lib/api";
 import { relativeTime, parseBackendDate } from "@/lib/format";
 import { useT } from "@/lib/i18n";
+import { useToast } from "@/components/ui/Toast";
+import { Icon } from "./icons";
 
 type Source = {
   label: string;
@@ -25,6 +27,7 @@ export function FreshnessBar() {
     { refreshInterval: 5_000 },
   );
 
+  const toast = useToast();
   const [refreshing, setRefreshing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -44,20 +47,24 @@ export function FreshnessBar() {
     if (lastRun.status === "running") return;
     if (lastRun.status === "rate_limited") {
       setMsg(t.freshness.rateLimited);
+      toast.error(t.freshness.rateLimited);
     } else if (lastRun.status === "success") {
       setMsg(t.freshness.done);
+      toast.success(t.freshness.done);
     } else if (lastRun.status === "partial") {
       setMsg(t.freshness.partialSuccess(lastRun.succeeded || 0, lastRun.attempted || 0));
+      toast.warning(t.freshness.partialSuccess(lastRun.succeeded || 0, lastRun.attempted || 0));
     } else if (lastRun.status === "failed") {
       setMsg(`${t.freshness.runFailed} ${lastRun.error || ""}`);
+      toast.error(t.freshness.runFailed, lastRun.error || undefined);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastRun?.status, lastRun?.error, lastRun?.succeeded, lastRun?.attempted, t]);
 
   const refreshAll = async (force = false) => {
     setRefreshing(true);
-    setMsg(force
-      ? "🔄 Tüm kelimeler zorla yenileniyor — taze olanlar da yeniden çekilecek."
-      : "▶ Eksik / bayat kelimeler tamamlanıyor. Taze olanlar atlanır (kaldığı yerden devam).");
+    setMsg(force ? t.freshness.forceStarted : t.freshness.resumeStarted);
+    toast.info(force ? t.freshness.forceStarted : t.freshness.resumeStarted);
     try {
       await api.systemRefreshAll(force);
       mutate();
@@ -65,6 +72,7 @@ export function FreshnessBar() {
     } catch (e: any) {
       setRefreshing(false);
       setMsg(`${t.common.error}: ${e.message}`);
+      toast.error(t.common.error, e.message);
     }
   };
 
@@ -97,10 +105,11 @@ export function FreshnessBar() {
   const cooldownMins = cooldown?.remaining_seconds ? Math.ceil(cooldown.remaining_seconds / 60) : 0;
 
   return (
-    <div className="card card-pad mb-6 bg-ink-50/50">
+    <div className="card card-pad mb-6">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div>
-          <div className="text-xs font-medium text-ink-500 uppercase tracking-wide">
+          <div className="overline flex items-center gap-1.5">
+            <Icon.Clock size={13} />
             {t.freshness.overline}
           </div>
           {isRunning && lastRun && (
@@ -130,7 +139,7 @@ export function FreshnessBar() {
             className="btn-primary text-xs whitespace-nowrap"
             onClick={() => refreshAll(false)}
             disabled={refreshing}
-            title="Eksik / bayat kelimeler — taze olanları atlar"
+            title={t.freshness.refreshAllHint}
           >
             {refreshing ? (
               <span className="flex items-center gap-1.5">
@@ -146,17 +155,18 @@ export function FreshnessBar() {
           </button>
           {!refreshing && (
             <button
-              className="text-xs text-ink-500 hover:text-amber-700 underline whitespace-nowrap"
+              className="btn-ghost btn-sm whitespace-nowrap"
               onClick={() => refreshAll(true)}
-              title="Tüm kelimeleri zorla yeniden çeker (taze olanları da). Daha çok API kotası harcar."
+              title={t.freshness.forceRefreshHint}
             >
-              ↻ Zorla yenile
+              <Icon.Refresh size={13} />
+              {t.freshness.forceRefresh}
             </button>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-ink-100">
         {sources.map((s) => {
           const parsed = parseBackendDate(s.value);
           const stale = parsed && Date.now() - parsed.getTime() > 1000 * 60 * 60 * 30;

@@ -31,21 +31,20 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-ink-50 px-4">
       <div className="w-full max-w-sm">
-        <div className="flex justify-end mb-3 gap-1">
-          <button
-            onClick={() => setLang("tr")}
-            className={`px-2 py-1 rounded-md text-xs ${lang === "tr" ? "bg-brand-50 text-brand-700 border border-brand-100" : "bg-white text-ink-500 border border-ink-200"}`}
-          >🇹🇷 TR</button>
-          <button
-            onClick={() => setLang("en")}
-            className={`px-2 py-1 rounded-md text-xs ${lang === "en" ? "bg-brand-50 text-brand-700 border border-brand-100" : "bg-white text-ink-500 border border-ink-200"}`}
-          >🇺🇸 EN</button>
+        <div className="flex justify-end mb-4">
+          <div className="segmented w-28" role="group" aria-label="Dil">
+            <button onClick={() => setLang("tr")} className={`segmented-item ${lang === "tr" ? "segmented-item-active" : ""}`} aria-pressed={lang === "tr"}>TR</button>
+            <button onClick={() => setLang("en")} className={`segmented-item ${lang === "en" ? "segmented-item-active" : ""}`} aria-pressed={lang === "en"}>EN</button>
+          </div>
         </div>
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
+          <div className="mx-auto w-12 h-12 rounded-xl bg-brand text-white text-xl font-semibold flex items-center justify-center shadow-sm mb-3">
+            {(brandName || "Trend Dashboard").trim().charAt(0).toUpperCase() || "T"}
+          </div>
           <div className="text-lg font-semibold text-ink-900">{brandName || "Trend Dashboard"}</div>
           <div className="text-sm text-ink-500">{t.nav.panelSubtitle}</div>
         </div>
-        <form onSubmit={onSubmit} className="card card-pad space-y-4">
+        <form onSubmit={onSubmit} className="card p-6 space-y-4 shadow-md">
           <div>
             <label className="label block mb-1.5">{t.login.username}</label>
             <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
@@ -54,7 +53,7 @@ export default function LoginPage() {
             <label className="label block mb-1.5">{t.login.password}</label>
             <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
           </div>
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {error && <div className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</div>}
           <button className="btn-primary w-full" disabled={loading}>
             {loading ? t.login.submitting : t.login.submit}
           </button>

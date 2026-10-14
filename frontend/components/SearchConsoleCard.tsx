@@ -125,7 +125,7 @@ export function SearchConsoleCard() {
       {activeRows.length === 0 && <div className="text-sm text-ink-500 py-4">{t.sc.emptyData}</div>}
 
       {activeRows.length > 0 && (
-        <div className="overflow-x-auto">
+        <div className="table-wrap">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-ink-500">

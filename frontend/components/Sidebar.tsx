@@ -4,23 +4,42 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearToken } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
+import { Icon } from "./icons";
 
-export function Sidebar() {
+type NavItem = { href: string; label: string; icon: (p: { size?: number; className?: string }) => JSX.Element };
+type NavGroup = { title: string; items: NavItem[] };
+
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { t, lang, setLang, brandName } = useLang();
 
-  const NAV = [
-    { href: "/", label: t.nav.overview },
-    { href: "/chat", label: t.nav.chat },
-    { href: "/explorer", label: t.nav.explorer },
-    { href: "/opportunities", label: t.nav.opportunities },
-    { href: "/categories", label: t.nav.categories },
-    { href: "/alerts", label: t.nav.alerts },
-    { href: "/seo", label: t.nav.seo },
-    { href: "/admin", label: t.nav.admin },
-    { href: "/setup", label: t.nav.setup },
-    { href: "/settings", label: t.nav.settings },
+  const GROUPS: NavGroup[] = [
+    {
+      title: t.nav.groups.analysis,
+      items: [
+        { href: "/", label: t.nav.overview, icon: Icon.Overview },
+        { href: "/explorer", label: t.nav.explorer, icon: Icon.Explore },
+        { href: "/opportunities", label: t.nav.opportunities, icon: Icon.Opportunity },
+        { href: "/categories", label: t.nav.categories, icon: Icon.Category },
+        { href: "/alerts", label: t.nav.alerts, icon: Icon.Alert },
+      ],
+    },
+    {
+      title: t.nav.groups.content,
+      items: [
+        { href: "/chat", label: t.nav.chat, icon: Icon.Chat },
+        { href: "/seo", label: t.nav.seo, icon: Icon.Seo },
+      ],
+    },
+    {
+      title: t.nav.groups.system,
+      items: [
+        { href: "/admin", label: t.nav.admin, icon: Icon.Admin },
+        { href: "/setup", label: t.nav.setup, icon: Icon.Setup },
+        { href: "/settings", label: t.nav.settings, icon: Icon.Settings },
+      ],
+    },
   ];
 
   const logout = () => {
@@ -29,60 +48,67 @@ export function Sidebar() {
   };
 
   const displayBrand = brandName || "Trend Dashboard";
+  const initial = displayBrand.trim().charAt(0).toUpperCase() || "T";
 
   return (
-    <aside className="w-56 shrink-0 border-r border-ink-200 bg-white min-h-screen flex flex-col">
-      <div className="px-5 py-6 border-b border-ink-200">
-        <div className="text-base font-semibold text-ink-900">{displayBrand}</div>
-        <div className="text-xs text-ink-500 mt-0.5">{t.nav.panelSubtitle}</div>
+    <aside className="w-64 shrink-0 bg-white flex flex-col h-full">
+      <div className="px-4 py-4 border-b border-ink-200 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-brand text-white font-semibold flex items-center justify-center shrink-0 shadow-sm">
+          {initial}
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-ink-900 truncate">{displayBrand}</div>
+          <div className="text-[11px] text-ink-500 truncate">{t.nav.panelSubtitle}</div>
+        </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV.map((item) => {
-          const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block px-3 py-2 rounded-md text-sm transition ${
-                active
-                  ? "bg-brand-50 text-brand-700 font-medium"
-                  : "text-ink-700 hover:bg-ink-50"
-              }`}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Ana menü">
+        {GROUPS.map((g) => (
+          <div key={g.title} className="mb-4">
+            <div className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-400">{g.title}</div>
+            <ul className="space-y-0.5">
+              {g.items.map((item) => {
+                const active = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
+                const I = item.icon;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onNavigate}
+                      aria-current={active ? "page" : undefined}
+                      className={`nav-link ${active ? "nav-link-active" : ""}`}
+                    >
+                      <I size={18} className={active ? "text-brand-600" : "text-ink-400"} />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       <div className="p-3 border-t border-ink-200 space-y-2">
-        <div className="flex gap-1">
+        <div className="segmented" role="group" aria-label="Dil">
           <button
             onClick={() => setLang("tr")}
-            className={`flex-1 px-2 py-1.5 rounded-md text-xs transition ${
-              lang === "tr"
-                ? "bg-brand-50 text-brand-700 border border-brand-100 font-medium"
-                : "bg-white text-ink-500 border border-ink-200 hover:bg-ink-50"
-            }`}
-            title="Türkçe"
+            className={`segmented-item ${lang === "tr" ? "segmented-item-active" : ""}`}
+            aria-pressed={lang === "tr"}
           >
-            🇹🇷 TR
+            TR
           </button>
           <button
             onClick={() => setLang("en")}
-            className={`flex-1 px-2 py-1.5 rounded-md text-xs transition ${
-              lang === "en"
-                ? "bg-brand-50 text-brand-700 border border-brand-100 font-medium"
-                : "bg-white text-ink-500 border border-ink-200 hover:bg-ink-50"
-            }`}
-            title="English"
+            className={`segmented-item ${lang === "en" ? "segmented-item-active" : ""}`}
+            aria-pressed={lang === "en"}
           >
-            🇺🇸 EN
+            EN
           </button>
         </div>
-        <button onClick={logout} className="w-full text-left px-3 py-2 rounded-md text-sm text-ink-500 hover:bg-ink-50 hover:text-ink-700 transition">
-          {t.nav.logout}
+        <button onClick={logout} className="nav-link w-full text-ink-500 hover:text-ink-900">
+          <Icon.Logout size={18} className="text-ink-400" />
+          <span>{t.nav.logout}</span>
         </button>
       </div>
     </aside>

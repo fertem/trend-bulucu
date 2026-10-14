@@ -12,35 +12,111 @@ html, body {
   background: var(--bg);
   color: #0f172a;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Klavye odağı: tüm etkileşimli öğelerde tutarlı halka */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 @layer components {
+  /* ── Yüzeyler ─────────────────────────────────────────────── */
   .card {
-    @apply bg-white border border-ink-200 rounded-lg;
+    @apply bg-white border border-ink-200 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04)];
   }
   .card-pad {
-    @apply p-5;
+    @apply p-4 sm:p-5;
   }
+  .card-title {
+    @apply text-sm font-semibold text-ink-900;
+  }
+  .overline {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-ink-500;
+  }
+
+  /* ── Butonlar ─────────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium shadow-sm hover:bg-brand-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 transition;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-md border border-ink-200 text-ink-700 text-sm font-medium hover:bg-ink-50 transition;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-ink-200 bg-white text-ink-700 text-sm font-medium hover:bg-ink-50 hover:border-ink-400/40 disabled:opacity-50 disabled:cursor-not-allowed transition;
   }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition;
+  }
+
+  /* ── Form ─────────────────────────────────────────────────── */
   .input {
-    @apply w-full px-3 py-2 rounded-md border border-ink-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent;
+    @apply w-full px-3 py-2 rounded-lg border border-ink-200 bg-white text-sm placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-ink-50 disabled:text-ink-500;
   }
   .label {
     @apply text-xs font-medium text-ink-500 uppercase tracking-wide;
   }
+
+  /* ── Sayılar / rozetler ───────────────────────────────────── */
   .stat-num {
-    @apply text-2xl font-semibold text-ink-900 tabular-nums;
+    @apply text-2xl sm:text-[28px] leading-none font-semibold text-ink-900 tabular-nums;
   }
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap;
   }
   .badge-hot { @apply bg-red-50 text-red-700 border border-red-100; }
   .badge-up  { @apply bg-emerald-50 text-emerald-700 border border-emerald-100; }
   .badge-down{ @apply bg-ink-100 text-ink-500 border border-ink-200; }
   .badge-cat { @apply bg-brand-50 text-brand-700 border border-brand-100; }
+
+  /* ── Navigasyon ───────────────────────────────────────────── */
+  .nav-link {
+    @apply relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-ink-700 hover:bg-ink-50 hover:text-ink-900 transition;
+  }
+  .nav-link-active {
+    @apply bg-brand-50 text-brand-700 font-medium;
+  }
+  .nav-link-active::before {
+    content: "";
+    @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r bg-brand-600;
+  }
+  .segmented {
+    @apply inline-flex w-full p-0.5 rounded-lg bg-ink-100 text-xs font-medium;
+  }
+  .segmented-item {
+    @apply flex-1 px-2 py-1.5 rounded-md text-ink-500 hover:text-ink-900 transition;
+  }
+  .segmented-item-active {
+    @apply bg-white text-ink-900 shadow-sm;
+  }
+
+  /* ── Tablolar ─────────────────────────────────────────────── */
+  .table-wrap {
+    @apply overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0;
+  }
+
+  /* ── Yükleme iskeleti ─────────────────────────────────────── */
+  .skeleton {
+    @apply rounded-md bg-ink-100 animate-pulse;
+  }
+}
+
+/* Toast ve çekmece animasyonları */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.toast { animation: toast-in 160ms ease-out; }
+
+@keyframes drawer-in {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+.drawer-in { animation: drawer-in 180ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast, .drawer-in { animation: none; }
+  .skeleton { animation: none; }
 }

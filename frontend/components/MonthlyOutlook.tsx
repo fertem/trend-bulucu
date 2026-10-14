@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonTable } from "@/components/ui/Skeleton";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
@@ -98,7 +99,7 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
       <p className="text-xs text-ink-500 -mt-2 mb-4">{t.monthlyOutlook.liftHint}</p>
 
       {aiError && <div className="text-sm text-red-600 mb-3">{aiError}</div>}
-      {isLoading && <div className="text-sm text-ink-500 mb-3">{t.common.loading}</div>}
+      {isLoading && <div className="mb-3"><SkeletonTable rows={3} cols={3} /></div>}
 
       {aiData && (
         <div className="mb-5 p-4 rounded-md border border-emerald-100 bg-white">

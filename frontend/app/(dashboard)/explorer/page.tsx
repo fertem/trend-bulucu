@@ -1,5 +1,6 @@
 "use client";
 
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import useSWR from "swr";
@@ -111,7 +112,7 @@ export default function ExplorerPage() {
       )}
 
       {!active && <div className="text-sm text-ink-500">{t.explorer.typeOrSelect}</div>}
-      {isLoading && <div className="text-sm text-ink-500">{t.common.loading}</div>}
+      {isLoading && <div className="space-y-4"><SkeletonCard lines={2} /><SkeletonCard lines={6} /></div>}
       {error && active && (error as any).status === 404 && (
         <UntrackedKeywordPrompt keyword={active} />
       )}
