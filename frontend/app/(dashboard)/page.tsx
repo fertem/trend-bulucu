@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { api, OverviewResponse, AnomalyItem } from "@/lib/api";
+import { api, OverviewResponse, AnomalyItem, AlertSummary } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { Stat } from "@/components/Stat";
 import { TrendTable } from "@/components/TrendTable";
@@ -34,6 +34,7 @@ export default function OverviewPage() {
 
   const { data, error, isLoading, mutate } = useSWR<OverviewResponse>("/api/trends/overview", api.fetcher);
   const { data: anomalies } = useSWR<AnomalyItem[]>("/api/trends/anomalies", api.fetcher);
+  const { data: alertSummary } = useSWR<AlertSummary>("/api/alerts/summary", api.fetcher, { refreshInterval: 60_000 });
 
   const hasData = !!data && data.total_keywords > 0;
 
@@ -78,7 +79,12 @@ export default function OverviewPage() {
             }
             hint={data.has_volumes ? t.dashboard.googleAdsHint : t.dashboard.googleAdsNotConnected}
           />
-          <Stat label={t.dashboard.hotAlerts} value={data.hot_count} hint={t.dashboard.hotAlertsHint} tone={data.hot_count > 0 ? "hot" : undefined} />
+          <Stat
+            label={t.dashboard.activeAlerts}
+            value={alertSummary ? alertSummary.new : data.hot_count}
+            hint={alertSummary ? t.dashboard.criticalCount(alertSummary.critical) : t.dashboard.hotAlertsHint}
+            tone={alertSummary ? (alertSummary.critical > 0 ? "hot" : alertSummary.new > 0 ? "warn" : undefined) : (data.hot_count > 0 ? "hot" : undefined)}
+          />
           <Stat label={t.dashboard.anomalies} value={anomalies?.length ?? 0} hint={t.dashboard.anomaliesHint} tone={(anomalies?.length ?? 0) > 0 ? "warn" : undefined} />
         </div>
       )}

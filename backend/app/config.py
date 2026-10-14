@@ -61,6 +61,12 @@ class Settings(BaseSettings):
 
     kod_org_path: str = ""
 
+    # Bildirimler (opsiyonel): yeni uyarılar Telegram ve/veya Slack'e gider
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+    slack_webhook_url: str = ""
+    notify_min_severity: str = "warn"   # info | warn | critical
+
     search_console_site_url: str = ""  # örn. "sc-domain:example.com" veya "https://www.example.com/"
 
     @property

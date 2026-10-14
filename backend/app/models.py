@@ -238,3 +238,20 @@ class ActionState(Base):
     status = Column(String, default="open")          # open | done | snoozed
     updated_at = Column(DateTime, default=datetime.utcnow)
     snooze_until = Column(DateTime, nullable=True)
+
+
+class Alert(Base):
+    """Akıllı uyarı kaydı. id = tür+kelime hash'i (aynı uyarı her gün yeniden üretilmez)."""
+    __tablename__ = "alerts"
+
+    id = Column(String, primary_key=True)
+    type = Column(String, nullable=False, index=True)       # hot | falling | spike | seasonal_peak_ahead | sc_drop
+    keyword = Column(String, nullable=False, index=True)
+    severity = Column(String, default="info")               # critical | warn | info
+    params = Column(String, default="{}")                   # JSON
+    href = Column(String, nullable=True)
+    first_seen = Column(DateTime, default=datetime.utcnow)
+    last_seen = Column(DateTime, default=datetime.utcnow, index=True)
+    status = Column(String, default="new", index=True)      # new | seen | muted
+    mute_until = Column(DateTime, nullable=True)
+    active = Column(Boolean, default=True, index=True)      # son üretimde hâlâ geçerli mi

@@ -162,6 +162,11 @@ function APITab() {
       keys: ["SEARCH_CONSOLE_SITE_URL"],
     },
     {
+      title: t.settings.api.groups.notify,
+      keys: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "SLACK_WEBHOOK_URL", "NOTIFY_MIN_SEVERITY"],
+      hint: t.settings.api.groups.notifyHint,
+    },
+    {
       title: t.settings.api.groups.pytrends,
       keys: ["PYTRENDS_GEO", "PYTRENDS_HL", "PYTRENDS_TIMEFRAME", "REQUEST_DELAY_SECONDS", "MAX_RETRIES"],
     },
@@ -233,13 +238,15 @@ function APITab() {
 }
 
 // Env key → which provider's test endpoint to use (null = no test available)
-const TEST_PROVIDER_FOR: Record<string, "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify" | null> = {
+const TEST_PROVIDER_FOR: Record<string, "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify" | "telegram" | "slack" | null> = {
   ANTHROPIC_API_KEY: "anthropic",
   OPENAI_API_KEY: "openai",
   SERPAPI_KEY: "serpapi",
   APIFY_API_TOKEN: "apify",
   GOOGLE_ADS_DEVELOPER_TOKEN: "google_ads",
   SEARCH_CONSOLE_SITE_URL: "search_console",
+  TELEGRAM_CHAT_ID: "telegram",
+  SLACK_WEBHOOK_URL: "slack",
 };
 
 function EnvField({
@@ -866,7 +873,7 @@ function HealthCard({ onJump }: { onJump: (tab: Tab) => void }) {
   );
 }
 
-function TestKeyButton({ provider }: { provider: "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify" }) {
+function TestKeyButton({ provider }: { provider: "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify" | "telegram" | "slack" }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string; detail?: string } | null>(null);

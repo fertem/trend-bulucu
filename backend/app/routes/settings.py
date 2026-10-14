@@ -28,6 +28,7 @@ ENV_EDITABLE_KEYS = {
     "GOOGLE_ADS_LOGIN_CUSTOMER_ID", "GOOGLE_ADS_API_VERSION",
     "GOOGLE_ADS_LANGUAGE_ID", "GOOGLE_ADS_GEO_TARGET_ID",
     "SEARCH_CONSOLE_SITE_URL",
+    "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "SLACK_WEBHOOK_URL", "NOTIFY_MIN_SEVERITY",
     "ADMIN_PASSWORD", "JWT_SECRET",
     "PYTRENDS_GEO", "PYTRENDS_HL", "PYTRENDS_TIMEFRAME",
     "REQUEST_DELAY_SECONDS", "MAX_RETRIES",
@@ -40,6 +41,7 @@ SENSITIVE_KEYS = {
     "SERPAPI_KEY", "APIFY_API_TOKEN",
     "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_DEVELOPER_TOKEN",
     "GOOGLE_ADS_REFRESH_TOKEN",
+    "TELEGRAM_BOT_TOKEN", "SLACK_WEBHOOK_URL",
     "ADMIN_PASSWORD", "JWT_SECRET",
 }
 
@@ -275,6 +277,20 @@ def test_api_key(body: TestKeyIn):
             elif "quota" in msg.lower() or "billing" in msg.lower():
                 hint = " — Kota/billing sorunu"
             return {"ok": False, "message": "OpenAI test başarısız", "detail": msg + hint}
+
+    if provider in ("telegram", "slack"):
+        from .. import notify
+        fn = notify.send_telegram if provider == "telegram" else notify.send_slack
+        configured = notify.has_telegram() if provider == "telegram" else notify.has_slack()
+        if not configured:
+            return {"ok": False, "message": f"{provider.title()} yapılandırılmamış — önce anahtarları kaydet"}
+        try:
+            r = fn("✅ Trend Paneli test bildirimi — bu kanal çalışıyor.")
+            if r.get("ok"):
+                return {"ok": True, "message": f"✓ {provider.title()} test mesajı gönderildi"}
+            return {"ok": False, "message": f"{provider.title()} gönderim başarısız", "detail": r.get("error", "")}
+        except Exception as e:
+            return {"ok": False, "message": f"{provider.title()} gönderim başarısız", "detail": str(e)[:200]}
 
     if provider == "serpapi":
         from .. import serpapi_collector

@@ -45,6 +45,15 @@ def _daily_job():
             logger.info("[scheduler] search console synced: %s", sc_result)
         except Exception as e:
             logger.warning("[scheduler] search console sync failed: %s", e)
+
+        try:
+            from .alerts import generate_and_notify
+            from .insights import invalidate_cache
+            invalidate_cache()
+            res = generate_and_notify(db)
+            logger.info("[scheduler] alerts: %d new, notified=%s", len(res.get("new", [])), res.get("notified"))
+        except Exception as e:
+            logger.warning("[scheduler] alert generation failed: %s", e)
     finally:
         db.close()
 

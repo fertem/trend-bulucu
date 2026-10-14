@@ -63,6 +63,13 @@ export const api = {
     }),
   refreshInsights: () => request<{ status: string; count: number }>("/api/insights/refresh", { method: "POST" }),
 
+  // Alerts
+  setAlertState: (id: string, status: "new" | "seen" | "muted", muteDays = 7) =>
+    request<AlertItem>(`/api/alerts/${id}/state`, { method: "POST", body: JSON.stringify({ status, mute_days: muteDays }) }),
+  generateAlerts: () =>
+    request<{ candidates: number; new_count: number; notified: any }>("/api/alerts/generate", { method: "POST" }),
+  markAllAlertsSeen: () => request<{ updated: number }>("/api/alerts/mark-all-seen", { method: "POST" }),
+
   login: (username: string, password: string) =>
     request<{ access_token: string; expires_in_hours: number; has_ai: boolean }>(
       "/api/auth/login",
@@ -132,7 +139,7 @@ export const api = {
     ),
   systemSetupStatus: () => request<SetupStatus>("/api/system/setup-status"),
   systemCurrentRun: () => request<CurrentRunResponse>("/api/admin/current-run"),
-  testApiKey: (provider: "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify") =>
+  testApiKey: (provider: "anthropic" | "openai" | "google_ads" | "search_console" | "serpapi" | "apify" | "telegram" | "slack") =>
     request<{ ok: boolean; message: string; detail?: string }>(
       "/api/settings/test-key",
       { method: "POST", body: JSON.stringify({ provider }) },
@@ -400,6 +407,33 @@ export const api = {
     }),
   removeKeyword: (kw: string) =>
     request<{ removed: boolean }>(`/api/admin/keywords/${encodeURIComponent(kw)}`, { method: "DELETE" }),
+};
+
+// ── Akıllı uyarılar ───────────────────────────────────────────────────────
+export type AlertType = "hot" | "falling" | "spike" | "seasonal_peak_ahead" | "sc_drop";
+export type AlertSeverity = "critical" | "warn" | "info";
+export type AlertItem = {
+  id: string;
+  type: AlertType;
+  keyword: string;
+  severity: AlertSeverity;
+  params: Record<string, any>;
+  href: string | null;
+  first_seen: string | null;
+  last_seen: string | null;
+  status: "new" | "seen" | "muted";
+  mute_until: string | null;
+  active: boolean;
+};
+export type AlertSummary = {
+  new: number; seen: number; muted: number;
+  critical: number; warn: number; info: number; total: number;
+  last_generated_at: string | null;
+};
+export type AlertsResponse = {
+  items: AlertItem[];
+  counts: AlertSummary;
+  notify: { configured: boolean; telegram: boolean; slack: boolean; min_severity: string };
 };
 
 // ── Insights (Fırsat Skoru v2 + aksiyon akışı) ───────────────────────────
