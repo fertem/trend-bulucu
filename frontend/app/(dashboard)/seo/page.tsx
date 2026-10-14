@@ -177,7 +177,7 @@ function CannibalTab() {
               </div>
               <div className="space-y-1">
                 {it.pages.map((p, j) => (
-                  <div key={j} className={`flex items-center justify-between p-2 rounded ${j === 0 ? "bg-emerald-50/50 border border-emerald-100" : "bg-white border border-ink-100"}`}>
+                  <div key={j} className={`flex items-center justify-between p-2 rounded ${j === 0 ? "bg-emerald-50/50 border border-emerald-100" : "bg-surface border border-ink-100"}`}>
                     <a href={p.page} target="_blank" rel="noreferrer" className="text-xs text-ink-700 hover:underline truncate flex-1">
                       {j === 0 && "✓ "}
                       {p.page.replace(/^https?:\/\/(www\.)?/, "")}

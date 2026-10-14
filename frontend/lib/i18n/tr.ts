@@ -65,6 +65,10 @@ export const tr = {
     panelSubtitle: "Trend Paneli",
     openMenu: "Menüyü aç",
     closeMenu: "Menüyü kapat",
+    theme: "Tema",
+    themeSystem: "Sistem",
+    themeLight: "Açık",
+    themeDark: "Koyu",
     groups: {
       analysis: "Analiz",
       content: "İçerik & AI",

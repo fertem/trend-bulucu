@@ -1,6 +1,7 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useChartTheme } from "@/lib/theme";
 
 export function BarKeywordChart({
   data,
@@ -11,22 +12,23 @@ export function BarKeywordChart({
   height?: number;
   dataKey?: string;
 }) {
+  const ct = useChartTheme();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout="vertical" margin={{ top: 4, right: 12, left: 12, bottom: 0 }}>
-        <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" horizontal={false} />
-        <XAxis type="number" stroke="#94a3b8" fontSize={12} tickLine={false} />
+        <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" horizontal={false} />
+        <XAxis type="number" stroke={ct.axis} fontSize={12} tickLine={false} />
         <YAxis
           type="category"
           dataKey="keyword"
-          stroke="#64748b"
+          stroke={ct.axis}
           fontSize={12}
           tickLine={false}
           axisLine={false}
           width={150}
         />
         <Tooltip
-          contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }}
+          contentStyle={{ ...ct.tooltip.contentStyle, fontSize: 12 }} labelStyle={ct.tooltip.labelStyle} itemStyle={ct.tooltip.itemStyle}
         />
         <Bar dataKey={dataKey} fill="#2563eb" radius={[0, 4, 4, 0]} />
       </BarChart>

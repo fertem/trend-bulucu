@@ -3,6 +3,7 @@
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend,
 } from "recharts";
+import { useChartTheme } from "@/lib/theme";
 import { parseBackendDate } from "@/lib/format";
 
 type Point = {
@@ -24,6 +25,7 @@ export function LineTrendChart({
   height?: number;
 }) {
   // Akıllı tahmin varsa onu kullan
+  const ct = useChartTheme();
   const useSmartForecast = smartForecast.length > 0;
   const fc = useSmartForecast ? smartForecast : forecast.map((f) => ({ ...f, confidence_low: f.predicted, confidence_high: f.predicted }));
 
@@ -57,11 +59,11 @@ export function LineTrendChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={formatted} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} interval="preserveStartEnd" />
-        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+        <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" vertical={false} />
+        <XAxis dataKey="label" stroke={ct.axis} fontSize={11} tickLine={false} interval="preserveStartEnd" />
+        <YAxis stroke={ct.axis} fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
         <Tooltip
-          contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }}
+          contentStyle={{ ...ct.tooltip.contentStyle, fontSize: 12 }} labelStyle={ct.tooltip.labelStyle} itemStyle={ct.tooltip.itemStyle}
           formatter={(v: any, name: string) => {
             if (name === "band") return [null, null];
             const num = typeof v === "number" ? v.toFixed(1) : v;
@@ -70,7 +72,7 @@ export function LineTrendChart({
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
         {forecastStartLabel && (
-          <ReferenceLine x={forecastStartLabel} stroke="#94a3b8" strokeDasharray="2 2" label={{ value: "tahmin →", position: "top", fontSize: 10, fill: "#64748b" }} />
+          <ReferenceLine x={forecastStartLabel} stroke={ct.axis} strokeDasharray="2 2" label={{ value: "tahmin →", position: "top", fontSize: 10, fill: ct.muted }} />
         )}
         {useSmartForecast && (
           <Area

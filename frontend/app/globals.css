@@ -2,15 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Renk token'ları (RGB kanal üçlüsü; Tailwind config bunları rgb(var()/alpha)
+   ile okur). Açık tema = Tailwind varsayılanları. Koyu tema aşağıda .dark'ta.
+   ────────────────────────────────────────────────────────────────────────── */
 :root {
-  --bg: #ffffff;
-  --bg-soft: #f8fafc;
-  --border: #e2e8f0;
+  color-scheme: light;
+  --page-bg: 248 250 252;        /* sayfa zemini (slate-50) */
+  --surface: 255 255 255;        /* "white": kart, input, toast */
+
+  --ink-900: 15 23 42;
+  --ink-700: 51 65 85;
+  --ink-500: 100 116 139;
+  --ink-400: 148 163 184;
+  --ink-300: 203 213 225;
+  --ink-200: 226 232 240;
+  --ink-100: 241 245 249;
+  --ink-50: 248 250 252;
+
+  --brand-50: 239 246 255;
+  --brand-100: 219 234 254;
+  --brand-200: 191 219 254;
+
+  --red-50: 254 242 242;      --red-100: 254 226 226;     --red-200: 254 202 202;
+  --amber-50: 255 251 235;    --amber-100: 254 243 199;   --amber-200: 253 230 138;
+  --emerald-50: 236 253 245;  --emerald-100: 209 250 229; --emerald-200: 167 243 208;
+  --cyan-50: 236 254 255;     --cyan-100: 207 250 254;    --cyan-200: 165 243 252;
+  --purple-50: 250 245 255;   --purple-100: 243 232 255;  --purple-200: 233 213 255;
+  --blue-50: 239 246 255;     --blue-100: 219 234 254;    --blue-200: 191 219 254;
+  --pink-50: 253 242 248;     --pink-100: 252 231 243;    --pink-200: 251 207 232;
+}
+
+.dark {
+  color-scheme: dark;
+  --page-bg: 2 6 23;             /* slate-950 */
+  --surface: 15 23 42;           /* slate-900 */
+
+  --ink-900: 241 245 249;        /* birincil metin */
+  --ink-700: 203 213 225;
+  --ink-500: 148 163 184;
+  --ink-400: 100 116 139;
+  --ink-300: 71 85 105;
+  --ink-200: 51 65 85;           /* kenarlık */
+  --ink-100: 30 41 59;           /* hafif zemin, skeleton */
+  --ink-50: 30 41 59;            /* hover zemini */
+
+  --brand-50: 23 37 84;
+  --brand-100: 30 58 138;
+  --brand-200: 30 64 175;
+
+  --red-50: 69 10 10;         --red-100: 127 29 29;       --red-200: 153 27 27;
+  --amber-50: 69 26 3;        --amber-100: 120 53 15;     --amber-200: 146 64 14;
+  --emerald-50: 2 44 34;      --emerald-100: 6 78 59;     --emerald-200: 6 95 70;
+  --cyan-50: 8 51 68;         --cyan-100: 22 78 99;       --cyan-200: 21 94 117;
+  --purple-50: 59 7 100;      --purple-100: 88 28 135;    --purple-200: 107 33 168;
+  --blue-50: 23 37 84;        --blue-100: 30 58 138;      --blue-200: 30 64 175;
+  --pink-50: 80 7 36;         --pink-100: 131 24 67;      --pink-200: 157 23 77;
 }
 
 html, body {
-  background: var(--bg);
-  color: #0f172a;
+  background: rgb(var(--page-bg));
+  color: rgb(var(--ink-900));
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -25,7 +77,7 @@ html, body {
 @layer components {
   /* ── Yüzeyler ─────────────────────────────────────────────── */
   .card {
-    @apply bg-white border border-ink-200 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04)];
+    @apply bg-surface border border-ink-200 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4)];
   }
   .card-pad {
     @apply p-4 sm:p-5;
@@ -39,21 +91,21 @@ html, body {
 
   /* ── Butonlar ─────────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-brand text-white text-sm font-medium shadow-sm hover:bg-brand-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 transition;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-brand text-[#fff] text-sm font-medium shadow-sm hover:bg-brand-700 active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 transition;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-ink-200 bg-white text-ink-700 text-sm font-medium hover:bg-ink-50 hover:border-ink-400/40 disabled:opacity-50 disabled:cursor-not-allowed transition;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-ink-200 bg-surface text-ink-700 text-sm font-medium hover:bg-ink-50 hover:border-ink-400/40 disabled:opacity-50 disabled:cursor-not-allowed transition;
   }
   .btn-sm {
     @apply px-3 py-1.5 text-xs;
   }
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition;
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-red-200 bg-surface text-red-700 text-sm font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition;
   }
 
   /* ── Form ─────────────────────────────────────────────────── */
   .input {
-    @apply w-full px-3 py-2 rounded-lg border border-ink-200 bg-white text-sm placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-ink-50 disabled:text-ink-500;
+    @apply w-full px-3 py-2 rounded-lg border border-ink-200 bg-surface text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent disabled:bg-ink-50 disabled:text-ink-500;
   }
   .label {
     @apply text-xs font-medium text-ink-500 uppercase tracking-wide;
@@ -80,7 +132,7 @@ html, body {
   }
   .nav-link-active::before {
     content: "";
-    @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r bg-brand-600;
+    @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r bg-brand-600 dark:bg-brand-500;
   }
   .segmented {
     @apply inline-flex w-full p-0.5 rounded-lg bg-ink-100 text-xs font-medium;
@@ -89,7 +141,7 @@ html, body {
     @apply flex-1 px-2 py-1.5 rounded-md text-ink-500 hover:text-ink-900 transition;
   }
   .segmented-item-active {
-    @apply bg-white text-ink-900 shadow-sm;
+    @apply bg-surface text-ink-900 shadow-sm;
   }
 
   /* ── Tablolar ─────────────────────────────────────────────── */
@@ -101,6 +153,49 @@ html, body {
   .skeleton {
     @apply rounded-md bg-ink-100 animate-pulse;
   }
+
+  /* ── Sayfa zemini (AppShell) ──────────────────────────────── */
+  .app-bg {
+    background: rgb(var(--page-bg));
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Koyu temada renkli METİN tonları: açık temada koyu (600-900) olan tonlar
+   koyu zeminde okunmaz; aynı sınıf adını koruyarak açık tona çeviriyoruz.
+   (bg-*-600/700 gibi dolgu kullanımları etkilenmez.)
+   ────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .dark .text-brand-600 { color: #60a5fa; }
+  .dark .text-brand-700 { color: #93c5fd; }
+  .dark .text-brand-800 { color: #bfdbfe; }
+
+  .dark .text-red-600, .dark .text-red-700 { color: #fca5a5; }
+  .dark .text-red-800, .dark .text-red-900 { color: #fecaca; }
+
+  .dark .text-amber-600, .dark .text-amber-700 { color: #fcd34d; }
+  .dark .text-amber-800, .dark .text-amber-900 { color: #fde68a; }
+
+  .dark .text-emerald-600, .dark .text-emerald-700 { color: #6ee7b7; }
+  .dark .text-emerald-800, .dark .text-emerald-900 { color: #a7f3d0; }
+
+  .dark .text-cyan-600, .dark .text-cyan-700 { color: #67e8f9; }
+  .dark .text-cyan-800, .dark .text-cyan-900 { color: #a5f3fc; }
+
+  .dark .text-purple-600, .dark .text-purple-700 { color: #d8b4fe; }
+  .dark .text-purple-800, .dark .text-purple-900 { color: #e9d5ff; }
+
+  .dark .text-blue-600, .dark .text-blue-700 { color: #93c5fd; }
+  .dark .text-blue-800, .dark .text-blue-900 { color: #bfdbfe; }
+
+  .dark .text-pink-600, .dark .text-pink-700 { color: #f9a8d4; }
+  .dark .text-pink-800, .dark .text-pink-900 { color: #fbcfe8; }
+
+  /* Hover varyantları aynı mantıkla */
+  .dark .hover\:text-brand-700:hover { color: #93c5fd; }
+  .dark .hover\:text-amber-700:hover { color: #fcd34d; }
+  .dark .hover\:text-red-700:hover { color: #fca5a5; }
+  .dark .hover\:text-emerald-700:hover { color: #6ee7b7; }
 }
 
 /* Toast ve çekmece animasyonları */

@@ -15,7 +15,7 @@ export function FirstRunBanner() {
   if (!data || data.configured) return null;
 
   return (
-    <div className="card card-pad mb-6 border-brand-200 bg-gradient-to-br from-brand-50 to-white">
+    <div className="card card-pad mb-6 border-brand-200 bg-gradient-to-br from-brand-50 to-surface">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1">
           <div className="text-xs font-medium text-brand-700 uppercase tracking-wide">{t.firstRun.overline}</div>

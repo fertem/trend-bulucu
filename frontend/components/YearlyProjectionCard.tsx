@@ -41,7 +41,7 @@ export function YearlyProjectionCard({ keyword, month }: { keyword: string; mont
   const maxVal = Math.max(...data.history.map((h) => h.value), predicted, 1);
 
   return (
-    <div className="card card-pad bg-gradient-to-br from-emerald-50/30 to-white border-emerald-100">
+    <div className="card card-pad bg-gradient-to-br from-emerald-50/30 to-surface border-emerald-100">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div>
           <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide">📈 Projection</div>

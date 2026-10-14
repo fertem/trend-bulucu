@@ -20,7 +20,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!ready) {
     return (
       <div className="min-h-screen md:flex">
-        <div className="hidden md:block w-64 shrink-0 border-r border-ink-200 bg-white" />
+        <div className="hidden md:block w-64 shrink-0 border-r border-ink-200 bg-surface" />
         <div className="flex-1 px-4 py-5 md:px-8 md:py-8 lg:px-10 max-w-6xl space-y-6">
           <div className="skeleton h-7 w-48" />
           <SkeletonStats />

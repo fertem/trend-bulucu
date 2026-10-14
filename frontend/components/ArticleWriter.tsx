@@ -187,7 +187,7 @@ export function ArticleWriter({ keyword, category, onClose }: {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-surface rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-ink-200 flex items-start justify-between gap-4">
           <div>
             <div className="text-xs text-ink-500 uppercase tracking-wide">{t.articleWriter.overline}</div>
@@ -213,7 +213,7 @@ export function ArticleWriter({ keyword, category, onClose }: {
               key={key}
               onClick={() => setTab(key)}
               className={`text-xs px-3 py-1.5 rounded-t-md whitespace-nowrap ${
-                tab === key ? "bg-white text-brand-700 border border-ink-200 border-b-white -mb-px font-medium" : "text-ink-500 hover:text-ink-700"
+                tab === key ? "bg-surface text-brand-700 border border-ink-200 border-b-white -mb-px font-medium" : "text-ink-500 hover:text-ink-700"
               }`}
             >
               {label}
@@ -442,7 +442,7 @@ export function ArticleWriter({ keyword, category, onClose }: {
                 <div className="text-ink-500 text-sm">{t.articleWriter.score.computing}</div>
               ) : scorecard && (
                 <div className="space-y-4">
-                  <div className="card card-pad bg-gradient-to-br from-brand-50/40 to-white border-brand-100">
+                  <div className="card card-pad bg-gradient-to-br from-brand-50/40 to-surface border-brand-100">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-xs text-ink-500">{t.articleWriter.score.total}</div>

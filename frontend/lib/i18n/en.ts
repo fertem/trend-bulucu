@@ -67,6 +67,10 @@ export const en: Dict = {
     panelSubtitle: "Trend Dashboard",
     openMenu: "Open menu",
     closeMenu: "Close menu",
+    theme: "Theme",
+    themeSystem: "System",
+    themeLight: "Light",
+    themeDark: "Dark",
     groups: {
       analysis: "Analysis",
       content: "Content & AI",

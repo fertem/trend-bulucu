@@ -733,7 +733,7 @@ function ResetCard() {
               <label
                 key={opt.v}
                 className={`block p-3 rounded-md border cursor-pointer transition ${
-                  scope === opt.v ? "border-red-200 bg-white" : "border-ink-200 bg-white hover:border-red-100"
+                  scope === opt.v ? "border-red-200 bg-surface" : "border-ink-200 bg-surface hover:border-red-100"
                 }`}
               >
                 <div className="flex items-start gap-2">
@@ -819,7 +819,7 @@ function HealthCard({ onJump }: { onJump: (tab: Tab) => void }) {
   };
 
   return (
-    <div className="card card-pad mb-6 bg-gradient-to-br from-ink-50/40 to-white">
+    <div className="card card-pad mb-6 bg-gradient-to-br from-ink-50/40 to-surface">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div>
           <div className="text-xs font-medium text-ink-500 uppercase tracking-wide">
@@ -840,7 +840,7 @@ function HealthCard({ onJump }: { onJump: (tab: Tab) => void }) {
             disabled={!it.tab}
             className={`flex items-start gap-2 p-2 rounded-md border text-left transition ${
               it.tab ? "hover:border-brand-200 hover:bg-brand-50/30 cursor-pointer" : "cursor-default"
-            } border-ink-200 bg-white`}
+            } border-ink-200 bg-surface`}
           >
             <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${STATUS_STYLE[it.status]}`} />
             <div className="flex-1 min-w-0">

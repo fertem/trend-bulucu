@@ -63,11 +63,11 @@ export function CollapsibleCard({
         {children}
       </div>
       {clamped && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-transparent rounded-b-lg" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-surface to-transparent rounded-b-lg" />
       )}
       {overflowing && (
         <div className={`flex justify-center ${clamped ? "-mt-4 relative" : "mt-2"}`}>
-          <button onClick={toggle} className="btn-ghost btn-sm shadow-sm bg-white">
+          <button onClick={toggle} className="btn-ghost btn-sm shadow-sm bg-surface">
             {open ? t.common.showLess : t.common.showAll}
             <svg
               width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"

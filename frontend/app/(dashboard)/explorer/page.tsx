@@ -102,7 +102,7 @@ export default function ExplorerPage() {
               className={`text-xs px-2.5 py-1 rounded-md border transition ${
                 active === k.keyword
                   ? "bg-brand-50 text-brand-700 border-brand-100"
-                  : "bg-white text-ink-700 border-ink-200 hover:bg-ink-50"
+                  : "bg-surface text-ink-700 border-ink-200 hover:bg-ink-50"
               }`}
             >
               {k.keyword}

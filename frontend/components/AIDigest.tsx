@@ -74,7 +74,7 @@ export function AIDigest({ hasAi }: { hasAi: boolean }) {
   const overline = t.aiDigest.overlineByPeriod[period] || t.aiDigest.overline;
 
   return (
-    <div className="card card-pad mb-6 border-brand-100 bg-gradient-to-br from-brand-50/60 to-white">
+    <div className="card card-pad mb-6 border-brand-100 bg-gradient-to-br from-brand-50/60 to-surface">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
         <div className="flex-1 min-w-0">
           <div className="text-xs font-medium text-brand-700 uppercase tracking-wide">{overline}</div>
@@ -110,7 +110,7 @@ export function AIDigest({ hasAi }: { hasAi: boolean }) {
               className={`text-xs px-3 py-1.5 rounded-md border transition ${
                 active
                   ? "bg-brand-100 text-brand-800 border-brand-200 font-medium"
-                  : "bg-white text-ink-700 border-ink-200 hover:bg-ink-50"
+                  : "bg-surface text-ink-700 border-ink-200 hover:bg-ink-50"
               }`}
             >
               {t.aiDigest.period[p]}

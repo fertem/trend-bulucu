@@ -1,6 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { useChartTheme } from "@/lib/theme";
 import useSWR from "swr";
 import { api, TrendScore } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -16,6 +17,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function CategoryDonut() {
   const t = useT();
+  const ct = useChartTheme();
   const { data } = useSWR<Record<string, TrendScore[]>>("/api/trends/categories", api.fetcher);
   if (!data) return null;
 
@@ -55,7 +57,7 @@ export function CategoryDonut() {
             ))}
           </Pie>
           <Tooltip
-            contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }}
+            contentStyle={{ ...ct.tooltip.contentStyle, fontSize: 12 }} labelStyle={ct.tooltip.labelStyle} itemStyle={ct.tooltip.itemStyle}
             formatter={(v: any, _name: any, ctx: any) => [
               `${v} ${t.categoryDonut.keywords} · ${t.monthlyOutlook.avg} ${ctx.payload.avgInterest.toFixed(1)}`,
               ctx.payload.name,

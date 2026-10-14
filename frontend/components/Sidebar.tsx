@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearToken } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 import { Icon } from "./icons";
 
 type NavItem = { href: string; label: string; icon: (p: { size?: number; className?: string }) => JSX.Element };
@@ -13,6 +14,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { t, lang, setLang, brandName } = useLang();
+  const { pref, setPref } = useTheme();
 
   const GROUPS: NavGroup[] = [
     {
@@ -51,7 +53,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const initial = displayBrand.trim().charAt(0).toUpperCase() || "T";
 
   return (
-    <aside className="w-64 shrink-0 bg-white flex flex-col h-full">
+    <aside className="w-64 shrink-0 bg-surface flex flex-col h-full">
       <div className="px-4 py-4 border-b border-ink-200 flex items-center gap-3">
         <div className="w-9 h-9 rounded-lg bg-brand text-white font-semibold flex items-center justify-center shrink-0 shadow-sm">
           {initial}
@@ -90,6 +92,24 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="p-3 border-t border-ink-200 space-y-2">
+        <div className="segmented" role="group" aria-label={t.nav.theme}>
+          {(["system", "light", "dark"] as const).map((opt) => {
+            const I = opt === "system" ? Icon.Monitor : opt === "light" ? Icon.Sun : Icon.Moon;
+            const label = opt === "system" ? t.nav.themeSystem : opt === "light" ? t.nav.themeLight : t.nav.themeDark;
+            return (
+              <button
+                key={opt}
+                onClick={() => setPref(opt)}
+                className={`segmented-item flex items-center justify-center gap-1 ${pref === opt ? "segmented-item-active" : ""}`}
+                aria-pressed={pref === opt}
+                title={label}
+              >
+                <I size={13} />
+                <span className="sr-only sm:not-sr-only">{label}</span>
+              </button>
+            );
+          })}
+        </div>
         <div className="segmented" role="group" aria-label="Dil">
           <button
             onClick={() => setLang("tr")}

@@ -5,6 +5,7 @@ import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, Legend, ComposedChart, Area,
 } from "recharts";
+import { useChartTheme } from "@/lib/theme";
 import { api, MonthProfile, YoYPoint, VsHistoryResponse } from "@/lib/api";
 import { YearMonthHeatmap } from "./YearMonthHeatmap";
 import { YearlyProjectionCard } from "./YearlyProjectionCard";
@@ -14,6 +15,7 @@ const YEAR_COLORS = ["#94a3b8", "#cbd5e1", "#a78bfa", "#60a5fa", "#2563eb"];
 
 export function SeasonalityPanel({ keyword }: { keyword: string }) {
   const t = useT();
+  const ct = useChartTheme();
   const MONTH_NAMES = t.months.short;
   const [profile, setProfile] = useState<Record<string, MonthProfile | null> | null>(null);
   const [yoy, setYoy] = useState<YoYPoint[] | null>(null);
@@ -128,10 +130,10 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
           <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.monthlyProfile}</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={monthBarData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
-              <Tooltip contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} />
+              <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="month" stroke={ct.axis} fontSize={12} tickLine={false} />
+              <YAxis stroke={ct.axis} fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+              <Tooltip contentStyle={{ ...ct.tooltip.contentStyle, fontSize: 12 }} labelStyle={ct.tooltip.labelStyle} itemStyle={ct.tooltip.itemStyle} />
               <Bar dataKey="mean" radius={[4, 4, 0, 0]}>
                 {monthBarData.map((d, i) => (
                   <Cell key={i} fill={d.isCurrent ? "#10b981" : "#94a3b8"} />
@@ -148,10 +150,10 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
           <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.yearComparison}</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={yoyChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
-              <Tooltip contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} />
+              <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="month" stroke={ct.axis} fontSize={12} tickLine={false} />
+              <YAxis stroke={ct.axis} fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+              <Tooltip contentStyle={{ ...ct.tooltip.contentStyle, fontSize: 12 }} labelStyle={ct.tooltip.labelStyle} itemStyle={ct.tooltip.itemStyle} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               {years.map((y, i) => (
                 <Line
@@ -191,10 +193,10 @@ export function SeasonalityPanel({ keyword }: { keyword: string }) {
             <h3 className="font-medium text-ink-900 mb-3">{t.seasonality.bandTitle}</h3>
             <ResponsiveContainer width="100%" height={260}>
               <ComposedChart data={bandData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
-                <Tooltip contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 12 }} />
+                <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" stroke={ct.axis} fontSize={12} tickLine={false} />
+                <YAxis stroke={ct.axis} fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                <Tooltip contentStyle={{ ...ct.tooltip.contentStyle, fontSize: 12 }} labelStyle={ct.tooltip.labelStyle} itemStyle={ct.tooltip.itemStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area type="monotone" dataKey="range" name={t.seasonality.bandLegendRange} fill="#cbd5e1" stroke="none" fillOpacity={0.5} />
                 <Line type="monotone" dataKey="median" name={t.seasonality.bandLegendMedian} stroke="#64748b" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />

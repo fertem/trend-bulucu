@@ -61,7 +61,7 @@ export function KeywordSuggester({ hasAi, onAdded }: { hasAi: boolean; onAdded?:
   };
 
   return (
-    <section className="card card-pad mb-6 border-brand-100 bg-gradient-to-br from-brand-50/40 to-white">
+    <section className="card card-pad mb-6 border-brand-100 bg-gradient-to-br from-brand-50/40 to-surface">
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="text-xs font-medium text-brand-700 uppercase tracking-wide">{t.keywordSuggester.overline}</div>
@@ -93,7 +93,7 @@ export function KeywordSuggester({ hasAi, onAdded }: { hasAi: boolean; onAdded?:
             <label
               key={s.keyword}
               className={`flex items-start gap-3 p-3 rounded-md border cursor-pointer transition ${
-                selected.has(s.keyword) ? "border-brand-200 bg-brand-50/40" : "border-ink-200 bg-white"
+                selected.has(s.keyword) ? "border-brand-200 bg-brand-50/40" : "border-ink-200 bg-surface"
               }`}
             >
               <input

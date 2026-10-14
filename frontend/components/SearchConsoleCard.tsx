@@ -90,7 +90,7 @@ export function SearchConsoleCard() {
     : movers || [];
 
   return (
-    <section className="card card-pad mb-6 border-cyan-100 bg-gradient-to-br from-cyan-50/40 to-white">
+    <section className="card card-pad mb-6 border-cyan-100 bg-gradient-to-br from-cyan-50/40 to-surface">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
         <div>
           <div className="text-xs font-medium text-cyan-700 uppercase tracking-wide">{t.sc.overline} · {t.sc.last28Days}</div>
@@ -114,7 +114,7 @@ export function SearchConsoleCard() {
             className={`text-xs px-3 py-1.5 rounded-md border transition ${
               tab === tk
                 ? "bg-cyan-100 text-cyan-800 border-cyan-200 font-medium"
-                : "bg-white text-ink-700 border-ink-200 hover:bg-ink-50"
+                : "bg-surface text-ink-700 border-ink-200 hover:bg-ink-50"
             }`}
           >
             {TAB_LABELS[tk]}
@@ -270,7 +270,7 @@ function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 key={s.url}
                 onClick={() => choose(s.url)}
                 disabled={picked !== null}
-                className="w-full text-left p-3 rounded-md border border-ink-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/30 disabled:opacity-50"
+                className="w-full text-left p-3 rounded-md border border-ink-200 bg-surface hover:border-cyan-200 hover:bg-cyan-50/30 disabled:opacity-50"
               >
                 <div className="font-medium text-ink-900 text-sm">{s.url}</div>
                 <div className="text-xs text-ink-500">{t.sc.permission}: {s.permission}</div>

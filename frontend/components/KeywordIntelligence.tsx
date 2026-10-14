@@ -72,7 +72,7 @@ export function KeywordIntelligence({ keyword, category }: { keyword: string; ca
   };
 
   return (
-    <div className="card card-pad bg-gradient-to-br from-purple-50/30 to-white border-purple-100">
+    <div className="card card-pad bg-gradient-to-br from-purple-50/30 to-surface border-purple-100">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
           <div className="text-xs font-medium text-purple-700 uppercase tracking-wide">{t.keywordIntel.overline}</div>
@@ -95,7 +95,7 @@ export function KeywordIntelligence({ keyword, category }: { keyword: string; ca
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {intent && (
-          <div className="card card-pad bg-white">
+          <div className="card card-pad bg-surface">
             <div className="label mb-1">{t.keywordIntel.searchIntent}</div>
             <span className={`badge border ${INTENT_COLORS[intent.intent] || INTENT_COLORS.informational}`}>
               {INTENT_LABELS[intent.intent] || intent.intent}
@@ -108,7 +108,7 @@ export function KeywordIntelligence({ keyword, category }: { keyword: string; ca
         )}
 
         {kd && (
-          <div className="card card-pad bg-white">
+          <div className="card card-pad bg-surface">
             <div className="flex items-start justify-between mb-2">
               <div>
                 <div className="label">{t.keywordIntel.keywordDifficulty}</div>
@@ -144,7 +144,7 @@ export function KeywordIntelligence({ keyword, category }: { keyword: string; ca
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
             {paa.questions.map((q, i) => (
-              <div key={i} className="card card-pad bg-white text-sm">
+              <div key={i} className="card card-pad bg-surface text-sm">
                 <div className="font-medium text-ink-900">{q.question}</div>
                 <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                   <span className="badge badge-cat">{q.type}</span>

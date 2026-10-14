@@ -57,7 +57,7 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {hasAi && (
-        <div className="card card-pad bg-gradient-to-br from-purple-50/40 to-white border-purple-100">
+        <div className="card card-pad bg-gradient-to-br from-purple-50/40 to-surface border-purple-100">
           <div className="flex items-start justify-between mb-3">
             <div>
               <div className="text-xs font-medium text-purple-700 uppercase tracking-wide">{t.similarKw.aiOverline}</div>
@@ -76,7 +76,7 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
           {items && items.length > 0 && (
             <div className="space-y-2">
               {items.map((s, i) => (
-                <div key={i} className="p-2.5 rounded-md border border-ink-200 bg-white hover:border-purple-200">
+                <div key={i} className="p-2.5 rounded-md border border-ink-200 bg-surface hover:border-purple-200">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-ink-900 text-sm">{s.keyword}</div>
@@ -114,7 +114,7 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
       )}
 
       {correlated && correlated.length > 0 && (
-        <div className="card card-pad bg-gradient-to-br from-cyan-50/40 to-white border-cyan-100">
+        <div className="card card-pad bg-gradient-to-br from-cyan-50/40 to-surface border-cyan-100">
           <div className="flex items-start justify-between mb-3">
             <div>
               <div className="text-xs font-medium text-cyan-700 uppercase tracking-wide">{t.similarKw.patternOverline}</div>
@@ -131,7 +131,7 @@ export function SimilarKeywords({ keyword, hasAi, correlated }: {
                 <Link
                   key={i}
                   href={`/explorer?q=${encodeURIComponent(c.keyword)}`}
-                  className="flex items-center justify-between p-2.5 rounded-md border border-ink-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/30"
+                  className="flex items-center justify-between p-2.5 rounded-md border border-ink-200 bg-surface hover:border-cyan-200 hover:bg-cyan-50/30"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-ink-900 text-sm truncate">{c.keyword}</div>

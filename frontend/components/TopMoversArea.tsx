@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useChartTheme } from "@/lib/theme";
 import { api, TrendScore } from "@/lib/api";
 import { useT, useLang } from "@/lib/i18n";
 import { parseBackendDate } from "@/lib/format";
@@ -15,6 +16,7 @@ type Series = {
 
 export function TopMoversArea({ topKeywords }: { topKeywords: TrendScore[] }) {
   const t = useT();
+  const ct = useChartTheme();
   const { lang } = useLang();
   const [series, setSeries] = useState<Series[] | null>(null);
   const top5 = topKeywords.slice(0, 5).map((s) => s.keyword);
@@ -67,11 +69,11 @@ export function TopMoversArea({ topKeywords }: { topKeywords: TrendScore[] }) {
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <AreaChart data={formatted} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} tickLine={false} interval="preserveStartEnd" />
-          <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
+          <CartesianGrid stroke={ct.grid} strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="label" stroke={ct.axis} fontSize={11} tickLine={false} interval="preserveStartEnd" />
+          <YAxis stroke={ct.axis} fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} />
           <Tooltip
-            contentStyle={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 6, fontSize: 11 }}
+            contentStyle={{ ...ct.tooltip.contentStyle, fontSize: 11 }} labelStyle={ct.tooltip.labelStyle} itemStyle={ct.tooltip.itemStyle}
           />
           <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
           {top5.map((kw, i) => (

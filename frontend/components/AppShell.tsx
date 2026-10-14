@@ -35,9 +35,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const displayBrand = brandName || "Trend Dashboard";
 
   return (
-    <div className="min-h-screen bg-ink-50/60 md:flex">
+    <div className="min-h-screen app-bg md:flex">
       {/* Mobil üst çubuk */}
-      <header className="md:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-ink-200">
+      <header className="md:hidden sticky top-0 z-30 bg-surface/95 backdrop-blur border-b border-ink-200">
         <div className="flex items-center justify-between px-4 h-14">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-brand text-white text-sm font-semibold flex items-center justify-center shrink-0">
@@ -58,15 +58,15 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       {/* Masaüstü sidebar */}
-      <div className="hidden md:block sticky top-0 h-screen border-r border-ink-200 bg-white">
+      <div className="hidden md:block sticky top-0 h-screen border-r border-ink-200 bg-surface">
         <Sidebar />
       </div>
 
       {/* Mobil çekmece */}
       {open && (
         <div className="md:hidden fixed inset-0 z-40" role="dialog" aria-modal="true" id="mobile-drawer">
-          <div className="absolute inset-0 bg-ink-900/40" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="absolute inset-y-0 left-0 w-[min(18rem,85vw)] bg-white shadow-xl drawer-in flex flex-col">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} aria-hidden="true" />
+          <div className="absolute inset-y-0 left-0 w-[min(18rem,85vw)] bg-surface shadow-xl drawer-in flex flex-col">
             <button
               onClick={() => setOpen(false)}
               className="absolute top-3 right-3 btn-ghost btn-sm"

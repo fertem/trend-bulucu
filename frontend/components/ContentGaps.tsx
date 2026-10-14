@@ -124,7 +124,7 @@ export function ContentGapsCard() {
   }
 
   return (
-    <section className="card card-pad mb-6 border-amber-100 bg-gradient-to-br from-amber-50/40 to-white">
+    <section className="card card-pad mb-6 border-amber-100 bg-gradient-to-br from-amber-50/40 to-surface">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
           <div className="text-xs font-medium text-amber-700 uppercase tracking-wide">
@@ -161,7 +161,7 @@ export function ContentGapsCard() {
               className={`text-xs px-3 py-1.5 rounded-md border transition ${
                 active
                   ? "bg-amber-100 text-amber-800 border-amber-200 font-medium"
-                  : "bg-white text-ink-700 border-ink-200 hover:bg-ink-50"
+                  : "bg-surface text-ink-700 border-ink-200 hover:bg-ink-50"
               }`}
             >
               {STATUS_LABELS[s]}
@@ -297,7 +297,7 @@ function ActionMenu({ gap, onChange }: { gap: ContentGap; onChange: (g: ContentG
   const current = gap.status || "new";
   return (
     <select
-      className="text-xs border border-ink-200 rounded px-1.5 py-1 bg-white hover:border-ink-400"
+      className="text-xs border border-ink-200 rounded px-1.5 py-1 bg-surface hover:border-ink-400"
       value={current}
       onChange={(e) => onChange(gap, e.target.value as ContentGap["status"])}
     >

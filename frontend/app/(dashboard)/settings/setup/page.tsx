@@ -184,7 +184,7 @@ export default function SetupWizard() {
               {aiCategories.map((c) => {
                 const sel = selectedCats.has(c.name);
                 return (
-                  <label key={c.name} className={`block p-3 rounded-md border cursor-pointer ${sel ? "border-brand-200 bg-brand-50/40" : "border-ink-200 bg-white"}`}>
+                  <label key={c.name} className={`block p-3 rounded-md border cursor-pointer ${sel ? "border-brand-200 bg-brand-50/40" : "border-ink-200 bg-surface"}`}>
                     <div className="flex items-start gap-2">
                       <input
                         type="checkbox"
@@ -227,7 +227,7 @@ export default function SetupWizard() {
               {aiKeywords.map((k) => {
                 const sel = selectedKws.has(k.keyword);
                 return (
-                  <label key={k.keyword} className={`block p-2.5 rounded-md border cursor-pointer ${sel ? "border-brand-200 bg-brand-50/40" : "border-ink-200 bg-white"}`}>
+                  <label key={k.keyword} className={`block p-2.5 rounded-md border cursor-pointer ${sel ? "border-brand-200 bg-brand-50/40" : "border-ink-200 bg-surface"}`}>
                     <div className="flex items-start gap-2">
                       <input
                         type="checkbox"

@@ -71,7 +71,7 @@ export function SetupChecklist({ alwaysShow = false }: { alwaysShow?: boolean })
   }
 
   return (
-    <section className="card card-pad mb-6 border-brand-100 bg-gradient-to-br from-brand-50/40 to-white">
+    <section className="card card-pad mb-6 border-brand-100 bg-gradient-to-br from-brand-50/40 to-surface">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -160,8 +160,8 @@ function StepRow({ step, index }: { step: SetupStep; index: number }) {
       step.done
         ? "border-emerald-100 bg-emerald-50/30"
         : step.required
-          ? "border-brand-100 bg-white"
-          : "border-ink-100 bg-white"
+          ? "border-brand-100 bg-surface"
+          : "border-ink-100 bg-surface"
     }`}>
       <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
         step.done

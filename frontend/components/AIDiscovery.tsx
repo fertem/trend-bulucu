@@ -54,7 +54,7 @@ export function AIDiscovery({ hasAi }: { hasAi: boolean }) {
   };
 
   return (
-    <section className="card card-pad mb-6 border-purple-100 bg-gradient-to-br from-purple-50/40 to-white">
+    <section className="card card-pad mb-6 border-purple-100 bg-gradient-to-br from-purple-50/40 to-surface">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
         <div>
           <div className="text-xs font-medium text-purple-700 uppercase tracking-wide">

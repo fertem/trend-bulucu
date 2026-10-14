@@ -67,7 +67,7 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
   const monthName = data?.target_month_name ?? MONTHS[selectedMonth - 1];
 
   return (
-    <section className="card card-pad mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50/40 to-white">
+    <section className="card card-pad mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50/40 to-surface">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
         <div>
           <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide">{t.monthlyOutlook.overline}</div>
@@ -102,7 +102,7 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
       {isLoading && <div className="mb-3"><SkeletonTable rows={3} cols={3} /></div>}
 
       {aiData && (
-        <div className="mb-5 p-4 rounded-md border border-emerald-100 bg-white">
+        <div className="mb-5 p-4 rounded-md border border-emerald-100 bg-surface">
           <div className="font-medium text-ink-900">{aiData.headline}</div>
           {aiData.context && (
             <p className="text-sm text-ink-700 mt-2">
@@ -137,7 +137,7 @@ export function MonthlyOutlookCard({ hasAi }: { hasAi: boolean }) {
               <Link
                 key={it.keyword}
                 href={`/explorer?q=${encodeURIComponent(it.keyword)}`}
-                className="block p-3 rounded-md border border-ink-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/30 transition"
+                className="block p-3 rounded-md border border-ink-200 bg-surface hover:border-emerald-200 hover:bg-emerald-50/30 transition"
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">

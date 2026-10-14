@@ -57,14 +57,14 @@ export function AIDeepAnalysis({ keyword }: { keyword: string }) {
   };
 
   return (
-    <div className="card card-pad bg-gradient-to-br from-brand-50/40 to-white border-brand-100">
+    <div className="card card-pad bg-gradient-to-br from-brand-50/40 to-surface border-brand-100">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div>
           <div className="text-xs font-medium text-brand-700 uppercase tracking-wide">{t.aiDeep.overline}</div>
           <h3 className="font-semibold text-ink-900 mt-1">"{keyword}"</h3>
         </div>
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-md border border-ink-200 bg-white p-0.5 text-xs">
+          <div className="inline-flex rounded-md border border-ink-200 bg-surface p-0.5 text-xs">
             <button
               onClick={() => setTab("deep")}
               className={`px-3 py-1 rounded ${tab === "deep" ? "bg-brand-600 text-white" : "text-ink-700 hover:bg-ink-50"}`}

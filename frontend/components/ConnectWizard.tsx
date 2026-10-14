@@ -128,7 +128,7 @@ export function ConnectWizard({ onConnected }: { onConnected?: () => void }) {
   const fullyConnected = credentialsOk && status.refresh_token_set;
 
   return (
-    <div className="card card-pad space-y-4 border-cyan-100 bg-gradient-to-br from-cyan-50/30 to-white">
+    <div className="card card-pad space-y-4 border-cyan-100 bg-gradient-to-br from-cyan-50/30 to-surface">
       <div>
         <h3 className="font-medium text-ink-900">{t.settings.connect.title}</h3>
         <p className="text-xs text-ink-500 mt-1">{t.settings.connect.subtitle}</p>
@@ -153,7 +153,7 @@ export function ConnectWizard({ onConnected }: { onConnected?: () => void }) {
       )}
 
       {/* Step 1 — Always visible (instructions) */}
-      <details className="rounded-md border border-ink-200 p-3 bg-white" open={!credentialsOk}>
+      <details className="rounded-md border border-ink-200 p-3 bg-surface" open={!credentialsOk}>
         <summary className="cursor-pointer text-sm font-medium text-ink-900">
           {t.settings.connect.step1}
         </summary>
@@ -176,7 +176,7 @@ export function ConnectWizard({ onConnected }: { onConnected?: () => void }) {
 
       {/* Step 2 — Show form if credentials not set, just a confirmation if they are */}
       {!credentialsOk ? (
-        <div className="rounded-md border border-ink-200 p-3 bg-white space-y-3">
+        <div className="rounded-md border border-ink-200 p-3 bg-surface space-y-3">
           <div className="text-sm font-medium text-ink-900">{t.settings.connect.step2}</div>
           <div>
             <label className="label block mb-1">{t.settings.connect.clientId}</label>
@@ -213,7 +213,7 @@ export function ConnectWizard({ onConnected }: { onConnected?: () => void }) {
 
       {/* Step 3 — OAuth button */}
       {credentialsOk && (
-        <div className="rounded-md border border-ink-200 p-3 bg-white space-y-2">
+        <div className="rounded-md border border-ink-200 p-3 bg-surface space-y-2">
           <div className="text-sm font-medium text-ink-900">{t.settings.connect.step3}</div>
           <button
             className={`text-sm px-4 py-2 rounded-md ${
@@ -231,7 +231,7 @@ export function ConnectWizard({ onConnected }: { onConnected?: () => void }) {
 
       {/* Site picker */}
       {sites && sites.length > 0 && (
-        <div className="rounded-md border border-ink-200 p-3 bg-white space-y-2">
+        <div className="rounded-md border border-ink-200 p-3 bg-surface space-y-2">
           <div className="text-sm font-medium text-ink-900">{t.settings.connect.pickSite}</div>
           {sites.map((s) => (
             <button
@@ -241,7 +241,7 @@ export function ConnectWizard({ onConnected }: { onConnected?: () => void }) {
               className={`w-full text-left p-2 rounded-md border transition ${
                 picked === s.url
                   ? "border-emerald-200 bg-emerald-50"
-                  : "border-ink-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/30"
+                  : "border-ink-200 bg-surface hover:border-cyan-200 hover:bg-cyan-50/30"
               } disabled:opacity-50`}
             >
               <div className="font-medium text-ink-900 text-sm">{s.url}</div>

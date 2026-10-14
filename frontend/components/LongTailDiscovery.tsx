@@ -78,7 +78,7 @@ export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
   });
 
   return (
-    <section className="card card-pad mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50/40 to-white">
+    <section className="card card-pad mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50/40 to-surface">
       <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
         <div>
           <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide">{t.longTail.overline}</div>
@@ -131,7 +131,7 @@ export function LongTailDiscovery({ hasAi }: { hasAi: boolean }) {
                         className={`text-xs px-2.5 py-1 rounded-md border transition ${
                           sel
                             ? "bg-emerald-100 text-emerald-800 border-emerald-200 font-medium"
-                            : "bg-white text-ink-700 border-ink-200 hover:bg-ink-50"
+                            : "bg-surface text-ink-700 border-ink-200 hover:bg-ink-50"
                         }`}
                       >
                         {sel && "✓ "}{v.keyword}

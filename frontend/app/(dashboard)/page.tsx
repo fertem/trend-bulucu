@@ -108,7 +108,7 @@ export default function OverviewPage() {
               <Link
                 key={a.keyword}
                 href={`/explorer?q=${encodeURIComponent(a.keyword)}`}
-                className="block p-3 rounded-lg border border-amber-100 bg-white hover:border-amber-300 hover:shadow-sm transition"
+                className="block p-3 rounded-lg border border-amber-100 bg-surface hover:border-amber-300 hover:shadow-sm transition"
               >
                 <div className="font-medium text-ink-900 text-sm truncate">{a.keyword}</div>
                 <div className="text-xs text-ink-500 mt-1">
