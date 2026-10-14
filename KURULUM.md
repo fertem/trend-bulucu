@@ -96,10 +96,10 @@ Tarayıcı otomatik açılır.
 4. **AI ozellikleri için API anahtarı** ekle:
    - Sol menüden **Ayarlar → API Anahtarları**
    - `ANTHROPIC_API_KEY` veya `OPENAI_API_KEY` alanına anahtarını yapıştır
-   - Kaydet
-   - Backend'i yeniden başlat (start.bat dosyasını tekrar tıkla)
+   - Kaydet (anında aktif olur, yeniden başlatma gerekmez)
 5. **Genel Bakış'ta "Tümünü Güncelle"** → ilk veri çekimi (~5 dk)
 6. **Sol menüde "Kurulum"** sekmesinden tüm adımları kontrol et
+7. Veri gelince Genel Bakış'ta **"Bugün ne yapmalı"** listesi, **Fırsatlar**'da skorlu kartlar ve **Uyarılar** dolmaya başlar. Yeni uyarıları telefona almak için [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) → Telegram / Slack.
 
 ### AI Anahtarı Nasıl Alınır?
 
@@ -132,8 +132,11 @@ Python kurarken **"Add Python to PATH"** kutusunu işaretlemediysen tekrar kur v
 ### "Port 8000 already in use" hatası
 Önceki sürec kapanmamış. **stop.bat**'a çift tıkla, sonra **start.bat**'ı tekrar dene.
 
-### Daha derin yapılandırma (Search Console / Google Ads / Site içerik analizi)
+### Daha derin yapılandırma (Search Console / Google Ads / Site içerik analizi / Telegram / Slack)
 [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) dökümanına bak — opsiyonel entegrasyonlar.
+
+### Daha önce kurmuştum, güncelledim
+README'deki **"Mevcut Kurulumu Güncelleme"** bölümüne bak: bağımlılıkları yeniden kur ve `.env`'de `GOOGLE_ADS_API_VERSION=v25` yap.
 
 ---
 

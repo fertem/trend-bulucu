@@ -37,6 +37,7 @@ Claude daha iyi Türkçe yazar, daha akıllı SEO önerileri verir. Önerim:
 3. API Keys → Create Key → kopyala (sk-ant-... ile başlar)
 4. Ayarlar → API → `ANTHROPIC_API_KEY` → yapıştır → Kaydet
 5. `AI_PROVIDER=anthropic` (varsayılan zaten bu)
+6. Model: `ANTHROPIC_MODEL` varsayılan `claude-sonnet-5-5` (hız/maliyet dengesi). `claude-opus-5-5` en güçlü, `claude-haiku-5-5` en ucuz. Ayarlar → API'den de değiştirilir.
 
 > İkisini de eklersen: `AI_PROVIDER` hangisi yazıyorsa öncelikli. Anthropic varken OpenAI çağrısı yapılmaz.
 
@@ -268,6 +269,43 @@ Backend'i yeniden başlat → Yönetim sayfası → **"Hacmi Güncelle"** → ~3
 
 **API v17/v18 → 404**
 → API sürümü deprecate olmuş. `.env`'de `GOOGLE_ADS_API_VERSION=v25` (veya o anki en güncel — https://developers.google.com/google-ads/api/docs/sunset-dates).
+
+---
+
+## Telegram / Slack Bildirimleri
+
+Akıllı uyarılar günlük toplamadan sonra üretilir; yeni **kritik** ve **uyarı** seviyesindekiler tek mesajda Telegram ve/veya Slack'e gönderilir. İkisi de opsiyoneldir, biri yeterlidir.
+
+### Telegram (~5 dk)
+
+1. Telegram'da **@BotFather** → `/newbot` → bir ad ve kullanıcı adı ver → verdiği **token**'ı kopyala (`123456:ABC-...` biçiminde)
+2. Oluşan bota git, **Start**'a bas ve herhangi bir mesaj gönder (bot sana yazabilsin diye)
+3. Chat id'ni al: tarayıcıda `https://api.telegram.org/bot<TOKEN>/getUpdates` aç → `"chat":{"id":123456789,...}` içindeki sayı chat id'dir
+   - Grup kanalına göndermek istersen botu gruba ekle, grupta mesaj at, aynı adresten grubun id'sini al (eksi ile başlar: `-100...`)
+4. Ayarlar → API Anahtarları → **🔔 Bildirimler**:
+   - `TELEGRAM_BOT_TOKEN` → token
+   - `TELEGRAM_CHAT_ID` → chat id
+   - Kaydet → alanın yanındaki **Test** → telefona "test bildirimi" gelmeli
+
+### Slack (~3 dk)
+
+1. https://api.slack.com/apps → **Create New App** → From scratch → çalışma alanını seç
+2. Sol menü **Incoming Webhooks** → Activate → **Add New Webhook to Workspace** → kanal seç → Allow
+3. Oluşan **Webhook URL**'yi kopyala (`https://hooks.slack.com/services/...`)
+4. Ayarlar → API Anahtarları → **🔔 Bildirimler** → `SLACK_WEBHOOK_URL` → Kaydet → **Test**
+
+### Eşik ve davranış
+
+- `NOTIFY_MIN_SEVERITY`: `warn` (varsayılan) → uyarı ve kritik gider; `critical` → sadece kritik; `info` → hepsi
+- Aynı uyarı her gün yeniden gönderilmez; yalnızca **ilk kez görülen** veya **seviyesi yükselen** uyarılar bildirilir
+- Uyarılar sayfasında **7 gün sustur** dediğin uyarılar bildirime de girmez
+- Bildirim gitmiyorsa: Uyarılar sayfasının üstündeki şerit kanalın bağlı olup olmadığını gösterir; Test butonu hata mesajını (geçersiz token, yanlış chat id, webhook iptal) olduğu gibi yazar
+
+### Sorun giderme
+
+**Telegram "chat not found"** → Bota hiç mesaj atmadın ya da chat id yanlış; bota bir mesaj gönderip getUpdates'i yeniden aç.
+**Telegram "Unauthorized"** → Token yanlış/iptal; BotFather'da `/token` ile yenisini al.
+**Slack "no_service" / 404** → Webhook silinmiş; yeni webhook oluştur.
 
 ---
 
