@@ -267,7 +267,7 @@ Backend'i yeniden başlat → Yönetim sayfası → **"Hacmi Güncelle"** → ~3
 → Cloud Console → APIs & Services → Library → Google Ads API → Enable.
 
 **API v17/v18 → 404**
-→ API sürümü deprecate olmuş. `.env`'de `GOOGLE_ADS_API_VERSION=v21` (veya o anki en güncel).
+→ API sürümü deprecate olmuş. `.env`'de `GOOGLE_ADS_API_VERSION=v25` (veya o anki en güncel — https://developers.google.com/google-ads/api/docs/sunset-dates).
 
 ---
 

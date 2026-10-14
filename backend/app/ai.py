@@ -59,6 +59,23 @@ def _lang_instruction(brand: dict | None) -> str:
     return "Cevap Türkçe olsun, dilbilgisi temiz."
 
 
+# Claude 5 ailesi: thinking varsayılan olarak adaptif. Kısa SEO/içerik çağrıları için
+# "low" effort önerilen başlangıç (düşük gecikme, max_tokens'ı thinking yemez).
+ANTHROPIC_EFFORT = "low"
+
+
+def _anthropic_text(msg) -> str:
+    """Claude cevabından text bloklarını birleştir; refusal'ı açık hatayla yüzeye çıkar."""
+    if getattr(msg, "stop_reason", None) == "refusal":
+        category = getattr(getattr(msg, "stop_details", None), "category", None)
+        raise RuntimeError(f"Claude isteği reddetti (stop_reason=refusal, kategori={category})")
+    parts = []
+    for block in msg.content:
+        if getattr(block, "type", None) == "text":
+            parts.append(block.text)
+    return "\n".join(parts).strip()
+
+
 def _resolve_provider() -> str:
     if settings.anthropic_api_key and (settings.ai_provider == "anthropic" or not settings.openai_api_key):
         return "anthropic"
@@ -72,16 +89,13 @@ def _call_anthropic(prompt: str, max_tokens: int = 800, system: str | None = Non
 
     client = Anthropic(api_key=settings.anthropic_api_key)
     msg = client.messages.create(
-        model="claude-sonnet-4-5",
+        model=settings.anthropic_model,
         max_tokens=max_tokens,
         system=system or DEFAULT_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
+        output_config={"effort": ANTHROPIC_EFFORT},
     )
-    parts = []
-    for block in msg.content:
-        if getattr(block, "type", None) == "text":
-            parts.append(block.text)
-    return "\n".join(parts).strip()
+    return _anthropic_text(msg)
 
 
 def _call_openai(prompt: str, max_tokens: int = 800, json_mode: bool = False, system: str | None = None) -> str:
@@ -813,10 +827,11 @@ def chat_with_data_stream(messages: list[dict], context: dict, brand: dict | Non
         from anthropic import Anthropic
         client = Anthropic(api_key=settings.anthropic_api_key)
         with client.messages.stream(
-            model="claude-sonnet-4-5",
+            model=settings.anthropic_model,
             max_tokens=1500,
             system=system_prompt,
             messages=cleaned,
+            output_config={"effort": ANTHROPIC_EFFORT},
         ) as stream:
             for text in stream.text_stream:
                 yield text
@@ -890,16 +905,13 @@ def chat_with_data(messages: list[dict], context: dict, brand: dict | None = Non
         from anthropic import Anthropic
         client = Anthropic(api_key=settings.anthropic_api_key)
         msg = client.messages.create(
-            model="claude-sonnet-4-5",
+            model=settings.anthropic_model,
             max_tokens=1500,
             system=system_prompt,
             messages=[{"role": m["role"], "content": m["content"]} for m in messages if m["role"] in ("user", "assistant")],
+            output_config={"effort": ANTHROPIC_EFFORT},
         )
-        parts = []
-        for block in msg.content:
-            if getattr(block, "type", None) == "text":
-                parts.append(block.text)
-        return "\n".join(parts).strip()
+        return _anthropic_text(msg)
     else:
         from openai import OpenAI
         client = OpenAI(api_key=settings.openai_api_key)

@@ -141,7 +141,7 @@ function APITab() {
   const groups: { title: string; keys: string[]; hint?: string }[] = [
     {
       title: t.settings.api.groups.ai,
-      keys: ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AI_PROVIDER"],
+      keys: ["ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "OPENAI_API_KEY", "AI_PROVIDER"],
       hint: t.settings.api.groups.aiHint,
     },
     {

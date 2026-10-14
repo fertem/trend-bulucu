@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     app_base_url: str = "http://localhost:8000"
 
     anthropic_api_key: str = ""
+    # Claude model (Claude 5 ailesi): claude-sonnet-5-5 (varsayılan), claude-opus-5-5, claude-haiku-5-5
+    anthropic_model: str = "claude-sonnet-5-5"
     openai_api_key: str = ""
     ai_provider: str = "anthropic"
 
@@ -55,7 +57,7 @@ class Settings(BaseSettings):
     google_ads_login_customer_id: str = ""
     google_ads_language_id: str = "1055"
     google_ads_geo_target_id: str = "2792"
-    google_ads_api_version: str = "v17"
+    google_ads_api_version: str = "v25"
 
     kod_org_path: str = ""
 

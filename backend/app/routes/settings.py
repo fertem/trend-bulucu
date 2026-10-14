@@ -21,7 +21,7 @@ ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
 
 # .env'de UI'dan değiştirilebilen anahtarlar
 ENV_EDITABLE_KEYS = {
-    "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "AI_PROVIDER",
+    "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "OPENAI_API_KEY", "AI_PROVIDER",
     "SERPAPI_KEY", "APIFY_API_TOKEN",
     "GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET",
     "GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CUSTOMER_ID",
@@ -243,7 +243,7 @@ def test_api_key(body: TestKeyIn):
             client = Anthropic(api_key=env_settings.anthropic_api_key)
             # Minimal probe: 1-token completion
             client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model="claude-haiku-5-5",
                 max_tokens=1,
                 messages=[{"role": "user", "content": "ok"}],
             )
