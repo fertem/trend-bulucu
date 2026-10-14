@@ -228,3 +228,13 @@ class CollectionRun(Base):
     keywords_failed = Column(Integer, default=0)
     status = Column(String, default="running")  # running | success | partial | failed
     error = Column(String, nullable=True)
+
+
+class ActionState(Base):
+    """Aksiyon akışındaki maddelerin kullanıcı durumu (yapıldı / ertelendi)."""
+    __tablename__ = "insight_action_state"
+
+    action_id = Column(String, primary_key=True)
+    status = Column(String, default="open")          # open | done | snoozed
+    updated_at = Column(DateTime, default=datetime.utcnow)
+    snooze_until = Column(DateTime, nullable=True)

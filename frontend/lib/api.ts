@@ -55,6 +55,14 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const api = {
   fetcher: <T = unknown>(path: string) => request<T>(path),
 
+  // Insights
+  setActionState: (id: string, status: "open" | "done" | "snoozed", snoozeDays = 7) =>
+    request<{ action_id: string; status: string }>(`/api/insights/actions/${id}/state`, {
+      method: "POST",
+      body: JSON.stringify({ status, snooze_days: snoozeDays }),
+    }),
+  refreshInsights: () => request<{ status: string; count: number }>("/api/insights/refresh", { method: "POST" }),
+
   login: (username: string, password: string) =>
     request<{ access_token: string; expires_in_hours: number; has_ai: boolean }>(
       "/api/auth/login",
@@ -393,6 +401,43 @@ export const api = {
   removeKeyword: (kw: string) =>
     request<{ removed: boolean }>(`/api/admin/keywords/${encodeURIComponent(kw)}`, { method: "DELETE" }),
 };
+
+// ── Insights (Fırsat Skoru v2 + aksiyon akışı) ───────────────────────────
+export type ActionType = "title_ctr" | "page2_push" | "write_gap" | "seasonal_prep" | "falling" | "cannibalization" | "spike";
+export type ActionItem = {
+  id: string;
+  type: ActionType;
+  priority: number;
+  keyword: string;
+  params: Record<string, any>;
+  href: string;
+  status: "open" | "done" | "snoozed";
+};
+export type ActionsResponse = {
+  items: ActionItem[];
+  counts: { open: number; done: number; snoozed: number };
+  total_candidates: number;
+};
+export type OpportunityAction = "write" | "optimize" | "maintain" | "watch" | "track";
+export type OpportunityV2 = {
+  keyword: string;
+  category: string | null;
+  score: number;
+  action: OpportunityAction;
+  confidence: "high" | "medium" | "low";
+  components: Record<"momentum" | "demand" | "seo" | "coverage" | "seasonality", { value: number; max: number }>;
+  reasons: { code: string; params: Record<string, any> }[];
+  metrics: {
+    growth_pct: number; avg_last_7: number; avg_prev_7: number;
+    volume_monthly: number | null;
+    sc_position: number | null; sc_impressions: number | null; sc_ctr: number | null; sc_page: string | null;
+    coverage_score: number | null; best_match_slug: string | null;
+    peak_month: number | null; months_to_peak: number | null; lift_pct: number | null;
+  };
+  is_hot: boolean;
+  data_sources: { ads: boolean; search_console: boolean; site: boolean; historical: boolean };
+};
+export type OpportunitiesV2Response = { items: OpportunityV2[]; total: number; action_counts: Record<string, number> };
 
 export type TrendScore = {
   keyword: string;

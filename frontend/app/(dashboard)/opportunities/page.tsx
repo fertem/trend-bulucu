@@ -1,63 +1,78 @@
 "use client";
 
+import { useState } from "react";
+import useSWR from "swr";
+import { api, OpportunitiesV2Response, OpportunityV2 } from "@/lib/api";
+import { PageHeader } from "@/components/PageHeader";
+import { OpportunityCard } from "@/components/OpportunityCard";
 import { SkeletonCard } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
-import useSWR from "swr";
-import Link from "next/link";
-import { api, TrendScore } from "@/lib/api";
-import { PageHeader } from "@/components/PageHeader";
-import { GrowthBadge } from "@/components/GrowthBadge";
+import { Icon } from "@/components/icons";
 import { useT } from "@/lib/i18n";
+
+type Filter = "all" | OpportunityV2["action"];
+const FILTERS: Filter[] = ["all", "write", "optimize", "maintain", "watch", "track"];
 
 export default function OpportunitiesPage() {
   const t = useT();
-  const { data, isLoading, error } = useSWR<TrendScore[]>("/api/trends/opportunities?limit=30", api.fetcher);
+  const [filter, setFilter] = useState<Filter>("all");
+  const { data, isLoading, error, mutate } = useSWR<OpportunitiesV2Response>(
+    `/api/insights/opportunities?limit=60${filter !== "all" ? `&action=${filter}` : ""}`,
+    api.fetcher,
+  );
+
+  const refresh = async () => {
+    await api.refreshInsights().catch(() => {});
+    mutate();
+  };
 
   return (
     <div>
       <PageHeader
         title={t.opportunities.title}
-        subtitle={t.opportunities.subtitle}
+        subtitle={t.insights.subtitle}
+        actions={
+          <button className="btn-ghost btn-sm" onClick={refresh}>
+            <Icon.Refresh size={14} />
+            {t.common.refresh}
+          </button>
+        }
       />
 
-      {isLoading && <div className="grid grid-cols-1 md:grid-cols-2 gap-4"><SkeletonCard lines={4} /><SkeletonCard lines={4} /><SkeletonCard lines={4} /><SkeletonCard lines={4} /></div>}
+      <div className="flex flex-wrap gap-1.5 mb-5">
+        {FILTERS.map((f) => {
+          const count = f === "all" ? data?.total : data?.action_counts?.[f];
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`btn-ghost btn-sm ${filter === f ? "border-brand-200 bg-brand-50 text-brand-700" : ""}`}
+            >
+              {f === "all" ? t.common.all : t.insights.actions[f]}
+              {typeof count === "number" && <span className="text-[10px] tabular-nums opacity-70">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="card card-pad mb-5 text-xs text-ink-500">
+        <span className="font-medium text-ink-700">{t.insights.howTitle}</span> {t.insights.howText}
+      </div>
+
+      {isLoading && !data && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SkeletonCard lines={5} /><SkeletonCard lines={5} /><SkeletonCard lines={5} /><SkeletonCard lines={5} />
+        </div>
+      )}
       {error && <div className="text-sm text-red-600">{t.common.error}: {String((error as any).message || error)}</div>}
 
-      {data && data.length === 0 && (
+      {data && data.items.length === 0 && (
         <section className="card"><EmptyState title={t.opportunities.noScore} action={{ label: t.nav.admin, href: "/admin" }} /></section>
       )}
 
-      {data && data.length > 0 && (
+      {data && data.items.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {data.map((s) => (
-            <Link
-              key={s.keyword}
-              href={`/explorer?q=${encodeURIComponent(s.keyword)}`}
-              className="card card-pad hover:border-brand-100 hover:bg-brand-50/30 transition"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <div className="font-medium text-ink-900">{s.keyword}</div>
-                  {s.category && <span className="badge badge-cat mt-1">{s.category}</span>}
-                </div>
-                <GrowthBadge pct={s.growth_pct} hot={s.is_hot} />
-              </div>
-              <div className="grid grid-cols-3 text-xs text-ink-500 mt-3">
-                <div>
-                  <div className="label">{t.opportunities.opportunity}</div>
-                  <div className="text-base text-ink-900 tabular-nums mt-0.5">{s.opportunity_score.toFixed(0)}</div>
-                </div>
-                <div>
-                  <div className="label">{t.opportunities.last7d}</div>
-                  <div className="text-base text-ink-900 tabular-nums mt-0.5">{s.avg_last_7.toFixed(1)}</div>
-                </div>
-                <div>
-                  <div className="label">{t.opportunities.prev7d}</div>
-                  <div className="text-base text-ink-900 tabular-nums mt-0.5">{s.avg_prev_7.toFixed(1)}</div>
-                </div>
-              </div>
-            </Link>
-          ))}
+          {data.items.map((item) => <OpportunityCard key={item.keyword} item={item} />)}
         </div>
       )}
     </div>

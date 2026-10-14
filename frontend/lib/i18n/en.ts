@@ -1,5 +1,7 @@
 import type { Dict } from "./tr";
 
+const MONTHS_EN: Record<number, string> = { 1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December" };
+
 export const en: Dict = {
   common: {
     loading: "Loading…",
@@ -1052,5 +1054,71 @@ export const en: Dict = {
       copyFail: "Copy failed",
       generateFullFirst: "Generate 'Full Article' first",
     },
+  },
+
+  actions: {
+    overline: "What to do today",
+    title: "Action feed",
+    pendingCount: (n: number) => `${n} pending actions`,
+    doneCount: (n: number) => `${n} done`,
+    allClear: "No pending actions",
+    emptyHint: "Nothing to suggest right now. New items appear as data refreshes.",
+    go: "Open",
+    done: "Done",
+    snooze: "Snooze",
+    markedDone: "Marked as done",
+    snoozed: "Snoozed for 7 days",
+    priority: "priority",
+    types: {
+      title_ctr: "Improve title",
+      page2_push: "Push from page 2",
+      write_gap: "Write content",
+      seasonal_prep: "Prepare for peak",
+      falling: "Falling",
+      cannibalization: "Page conflict",
+      spike: "Sudden spike",
+    } as Record<string, string>,
+    detail: {
+      title_ctr: (p: any) => `${p.impressions} impressions, ${p.ctr}% CTR, position ${p.position} — ~${p.potential_clicks} extra clicks with a better title/meta`,
+      page2_push: (p: any) => `Position ${p.position}, ${p.impressions} impressions — a small update can reach page 1`,
+      write_gap: (p: any) => `Opportunity score ${p.score}, growth ${p.growth_pct}% — nothing on your site yet`,
+      seasonal_prep: (p: any) => `Peaks in ${MONTHS_EN[p.month] ?? p.month}, ${p.months} month(s) away — publish now so it gets indexed`,
+      falling: (p: any) => `${p.pct}% drop in the last 7 days — refresh the content or stop tracking`,
+      cannibalization: (p: any) => `${p.page_count} pages compete for the same query — make one canonical`,
+      spike: (p: any) => `${p.z}σ above the historical mean (now ${p.last_value}) — timely topic/news opportunity`,
+    } as Record<string, (p: any) => string>,
+  },
+
+  insights: {
+    subtitle: "Explainable opportunity score: momentum + demand + SEO position + coverage + seasonality. Each card shows why and the suggested action.",
+    score: "score",
+    breakdown: "Score components",
+    howTitle: "How is it computed?",
+    howText: "Momentum (35): growth of the keyword's own last 7 days vs the previous 7. Demand (25): Google Ads volume, else Trends interest. SEO (20): page 2 and CTR gaps in Search Console score highest. Coverage (10): no matching content = write opportunity. Season (10): peak within 1-3 months. Stale data lowers confidence and trims the score by 15%.",
+    confidence: { high: "high confidence", medium: "medium confidence", low: "low confidence" },
+    confidenceHint: "Latest data is older than 3 days or missing",
+    actions: { write: "Write", optimize: "Optimize", maintain: "Maintain", watch: "Watch", track: "Track" },
+    components: { momentum: "Momentum", demand: "Demand", seo: "SEO", coverage: "Coverage", seasonality: "Season" },
+    reasons: {
+      growth_up: (p: any) => `+${p.pct}% growth`,
+      growth_down: (p: any) => `${p.pct}% drop`,
+      hot: "Hot",
+      low_interest: (p: any) => `Very low interest (${p.value})`,
+      no_data: "No data",
+      volume: (p: any) => `${Number(p.n).toLocaleString("en-US")} monthly searches`,
+      sc_page2: (p: any) => `On page 2 (pos. ${p.pos})`,
+      sc_near_top: (p: any) => `Pos. ${p.pos}, close to the top`,
+      sc_deep: (p: any) => `Pos. ${p.pos}, deep`,
+      sc_top: (p: any) => `Already top 3 (pos. ${p.pos})`,
+      sc_ctr_gap: (p: any) => `${p.impressions} impressions but ${p.ctr}% CTR`,
+      sc_absent: "Not visible in Search Console",
+      not_covered: "No content on site",
+      thin_coverage: (p: any) => `Thin coverage (${p.pct}%)`,
+      covered: (p: any) => (p.slug ? `Existing: ${p.slug}` : "Covered on site"),
+      peak_soon: (p: any) => `Peaks in ${MONTHS_EN[p.month] ?? p.month}, ${p.months} month(s) away`,
+      peak_now: (p: any) => `Peak month (${MONTHS_EN[p.month] ?? p.month})`,
+      off_season: "Off season",
+      stale_data: (p: any) => (p.days ? `Data ${p.days} days old` : "Stale data"),
+    } as Record<string, string | ((p: any) => string)>,
   },
 };

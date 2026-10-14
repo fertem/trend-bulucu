@@ -1,3 +1,5 @@
+const MONTHS_TR: Record<number, string> = { 1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran", 7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık" };
+
 export const tr = {
   common: {
     loading: "Yükleniyor…",
@@ -1051,6 +1053,72 @@ export const tr = {
       copyFail: "Kopyalanamadı",
       generateFullFirst: "Önce 'Tam Yazı' üret",
     },
+  },
+
+  actions: {
+    overline: "Bugün ne yapmalı",
+    title: "Aksiyon akışı",
+    pendingCount: (n: number) => `${n} bekleyen aksiyon`,
+    doneCount: (n: number) => `${n} yapıldı`,
+    allClear: "Bekleyen aksiyon yok",
+    emptyHint: "Şu an önerilecek bir aksiyon yok. Veri güncellendikçe yeni maddeler gelir.",
+    go: "Git",
+    done: "Yapıldı",
+    snooze: "Ertele",
+    markedDone: "Yapıldı olarak işaretlendi",
+    snoozed: "7 gün ertelendi",
+    priority: "öncelik",
+    types: {
+      title_ctr: "Başlığı iyileştir",
+      page2_push: "Sayfa 2'den it",
+      write_gap: "İçerik yaz",
+      seasonal_prep: "Zirveye hazırlan",
+      falling: "Düşüşte",
+      cannibalization: "Sayfa çakışması",
+      spike: "Ani sıçrama",
+    } as Record<string, string>,
+    detail: {
+      title_ctr: (p: any) => `${p.impressions} gösterim, %${p.ctr} CTR, pozisyon ${p.position} — başlık/meta ile ~${p.potential_clicks} ek tıklama`,
+      page2_push: (p: any) => `Pozisyon ${p.position}, ${p.impressions} gösterim — küçük bir güncellemeyle ilk sayfa`,
+      write_gap: (p: any) => `Fırsat skoru ${p.score}, büyüme %${p.growth_pct} — sitende karşılığı yok`,
+      seasonal_prep: (p: any) => `Zirve ${MONTHS_TR[p.month] ?? p.month}, ${p.months} ay kaldı — şimdi yayınla ki indekslensin`,
+      falling: (p: any) => `Son 7 günde %${p.pct} düşüş — içeriği güncelle veya takipten çıkar`,
+      cannibalization: (p: any) => `${p.page_count} sayfa aynı sorguda yarışıyor — birini kanonik yap`,
+      spike: (p: any) => `Tarihsel ortalamadan ${p.z}σ uzakta (şu an ${p.last_value}) — güncel konu/haber fırsatı`,
+    } as Record<string, (p: any) => string>,
+  },
+
+  insights: {
+    subtitle: "Açıklanabilir fırsat skoru: ivme + talep + SEO konumu + kapsam + mevsimsellik. Her kartta neden ve önerilen aksiyon.",
+    score: "skor",
+    breakdown: "Skor bileşenleri",
+    howTitle: "Nasıl hesaplanır?",
+    howText: "İvme (35): kelimenin kendi son 7 gününün önceki 7 güne göre büyümesi. Talep (25): Google Ads hacmi, yoksa Trends ilgisi. SEO (20): Search Console'da sayfa 2 ve CTR açığı en yüksek puanı alır. Kapsam (10): sitende karşılığı yoksa yazma fırsatı. Mevsim (10): 1-3 ay içinde zirve. Veri bayatsa güven düşer, skor %15 kırpılır.",
+    confidence: { high: "yüksek güven", medium: "orta güven", low: "düşük güven" },
+    confidenceHint: "Son veri 3 günden eski ya da hiç yok",
+    actions: { write: "Yaz", optimize: "Optimize et", maintain: "Koru", watch: "İzle", track: "Takip et" },
+    components: { momentum: "İvme", demand: "Talep", seo: "SEO", coverage: "Kapsam", seasonality: "Mevsim" },
+    reasons: {
+      growth_up: (p: any) => `+%${p.pct} büyüme`,
+      growth_down: (p: any) => `%${p.pct} düşüş`,
+      hot: "Hot",
+      low_interest: (p: any) => `İlgi çok düşük (${p.value})`,
+      no_data: "Veri yok",
+      volume: (p: any) => `${Number(p.n).toLocaleString("tr-TR")} aylık arama`,
+      sc_page2: (p: any) => `Sayfa 2'de (poz. ${p.pos})`,
+      sc_near_top: (p: any) => `Poz. ${p.pos}, ilk sayfaya yakın`,
+      sc_deep: (p: any) => `Poz. ${p.pos}, derinde`,
+      sc_top: (p: any) => `Zaten ilk 3'te (poz. ${p.pos})`,
+      sc_ctr_gap: (p: any) => `${p.impressions} gösterim ama %${p.ctr} CTR`,
+      sc_absent: "Search Console'da görünmüyor",
+      not_covered: "Sitede içerik yok",
+      thin_coverage: (p: any) => `Zayıf kapsam (%${p.pct})`,
+      covered: (p: any) => (p.slug ? `Mevcut: ${p.slug}` : "Sitede karşılığı var"),
+      peak_soon: (p: any) => `Zirve ${MONTHS_TR[p.month] ?? p.month}'da, ${p.months} ay kaldı`,
+      peak_now: (p: any) => `Zirve ayı (${MONTHS_TR[p.month] ?? p.month})`,
+      off_season: "Sezon dışı",
+      stale_data: (p: any) => (p.days ? `Veri ${p.days} gün eski` : "Veri eski"),
+    } as Record<string, string | ((p: any) => string)>,
   },
 };
 

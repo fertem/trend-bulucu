@@ -30,6 +30,11 @@ def _daily_job():
         n = recompute_all_scores(db)
         logger.info("[scheduler] recomputed %d scores", n)
         try:
+            from .insights import invalidate_cache
+            invalidate_cache()
+        except Exception:
+            pass
+        try:
             gap_result = update_gap_history(db)
             logger.info("[scheduler] gap history updated: %s", gap_result)
         except Exception as e:

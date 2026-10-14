@@ -16,6 +16,7 @@ import { SearchConsoleCard } from "@/components/SearchConsoleCard";
 import { FreshnessBar } from "@/components/FreshnessBar";
 import { SetupChecklist } from "@/components/SetupChecklist";
 import { AIDiscovery } from "@/components/AIDiscovery";
+import { ActionFeed } from "@/components/ActionFeed";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { SkeletonStats, SkeletonCard } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -82,7 +83,10 @@ export default function OverviewPage() {
         </div>
       )}
 
-      {/* 3 — Veri tazeliği + "Tümünü güncelle" aksiyonu */}
+      {/* 3 — Bugün ne yapmalı: kural tabanlı aksiyon akışı */}
+      <ActionFeed />
+
+      {/* 4 — Veri tazeliği + "Tümünü güncelle" aksiyonu */}
       <FreshnessBar />
 
       {/* 4 — Hiç veri yoksa yönlendirici boş durum */}

@@ -22,6 +22,7 @@ from .routes import search_console as sc_routes
 from .routes import system as system_routes
 from .routes import settings as settings_routes
 from .routes import publish as publish_routes
+from .routes import insights as insights_routes
 
 
 logging.basicConfig(
@@ -76,6 +77,7 @@ app.include_router(sc_routes.public_router)  # OAuth callback (no admin auth)
 app.include_router(system_routes.router)
 app.include_router(settings_routes.router)
 app.include_router(publish_routes.router)
+app.include_router(insights_routes.router)
 
 
 @app.get("/api/health")
